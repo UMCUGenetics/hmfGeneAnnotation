@@ -1,0 +1,15 @@
+ann	score	comment
+Benign	1	
+Uncertain_significance	3	
+Pathogenic	5	
+Likely_benign	2	
+Conflicting_interpretations_of_pathogenicity	3	assume equal to VUS
+Likely_pathogenic	4	
+not_provided	0	
+risk_factor	0	consider not pathogenic; https://www.nature.com/articles/gim201760
+blank	0	same as not_provided; in vcf, some variants did not have a CLNSIG field
+association	0	
+drug_response	0	consider not pathogenic; https://www.nature.com/articles/gim201760
+Affects	0	
+other	0	consider not pathogenic; https://www.nature.com/articles/gim201760
+protective	0	

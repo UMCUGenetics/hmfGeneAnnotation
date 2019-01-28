@@ -1,0 +1,55 @@
+ann	impact	score_arne	score	ann_s1	ann_s2	comment
+frameshift_variant	HIGH	5	5	frameshift	frameshift	
+rare_amino_acid_variant	HIGH	NA	5	rare_amino_acid_variant	rare_amino_acid_variant	likely crucial for protein function
+transcript_ablation	HIGH	NA	5	transcript_ablation	transcript_ablation	probably due to CNV
+chromosome_number_variation	HIGH	4	4	chromosome_number_variation	chromosome_number_variation	
+exon_loss_variant	HIGH	4	4	exon_loss_variant	exon_loss_variant	
+splice_acceptor_variant	HIGH	4	4	splice_acceptor_variant	splice_acceptor_variant	
+splice_donor_variant	HIGH	4	4	splice_donor_variant	splice_donor_variant	
+start_lost	HIGH	4	4	nonsense	nonsense	
+stop_gained	HIGH	4	4	nonsense	nonsense	
+stop_lost	HIGH	4	4	nonsense	nonsense	
+missense_variant	MODERATE	1.5	3	missense	missense	changed to match VUS score
+3_prime_UTR_truncation & exon_loss	MODERATE	NA	3	UTR_non_synonymous_variant	UTR_non_synonymous_variant	similar to 5_prime_UTR_premature_start_codon_gain_variant
+5_prime_UTR_premature_start_codon_gain_variant	LOW	3	3	UTR_non_synonymous_variant	UTR_non_synonymous_variant	
+5_prime_UTR_truncation & exon_loss_variant	MODERATE	NA	3	UTR_non_synonymous_variant	UTR_non_synonymous_variant	similar to 5_prime_UTR_premature_start_codon_gain_variant
+coding_sequence_variant	MODERATE	NA	3	coding_sequence_variant	coding_sequence_variant	similar to missense_variant
+disruptive_inframe_deletion	MODERATE	2.5	3	frameshift_inframe_disruptive	frameshift_inframe_disruptive	rounding
+disruptive_inframe_insertion	MODERATE	2.5	3	frameshift_inframe_disruptive	frameshift_inframe_disruptive	rounding
+conservative_inframe_insertion	MODERATE	NA	2	frameshift_inframe	benign/likely_benign	similar to conservative_inframe_insertion
+inframe_deletion	MODERATE	NA	2	frameshift_inframe	benign/likely_benign	
+3_prime_UTR_variant	MODIFIER	0.5	1	UTR_variant	benign/likely_benign	rounding
+5_prime_UTR_variant	MODIFIER	0.5	1	UTR_variant	benign/likely_benign	rounding
+initiator_codon_variant	LOW	NA	1	initiator_codon_variant	benign/likely_benign	likely no effect
+regulatory_region_ablation	MODERATE	NA	1	regulatory_region_ablation	benign/likely_benign	similar to TF_binding_site_variant
+splice_region_variant	MODERATE	1.1	1	splice_region_variant	benign/likely_benign	rounding
+TF_binding_site_variant	MODIFIER	1	1	TF_binding_site_variant	benign/likely_benign	
+TFBS_ablation	MODERATE	NA	1	TFBS_ablation	benign/likely_benign	similar to TF_binding_site_variant
+conserved_intergenic_variant	MODIFIER	NA	0	intragenic_variant	benign/likely_benign	
+conserved_intron_variant	MODIFIER	NA	0	intron_variant	benign/likely_benign	
+downstream_gene_variant	MODIFIER	0	0	downstream_gene_variant	benign/likely_benign	
+exon_variant	MODIFIER	NA	0	exon_variant	benign/likely_benign	
+feature_elongation	MODIFIER	NA	0	feature_elongation	benign/likely_benign	
+feature_truncation	MODIFIER	NA	0	feature_truncation	benign/likely_benign	
+gene_variant	MODIFIER	NA	0	gene_variant	benign/likely_benign	
+intergenic_region	MODIFIER	0	0	intergenic_region	benign/likely_benign	
+intragenic_variant	MODIFIER	NA	0	intragenic_variant	benign/likely_benign	
+intron_variant	MODIFIER	0	0	intron_variant	benign/likely_benign	
+mature_miRNA_variant	MODIFIER	NA	0	mature_miRNA_variant	benign/likely_benign	
+miRNA	MODIFIER	NA	0	miRNA	benign/likely_benign	
+NMD_transcript_variant	MODIFIER	NA	0	NMD_transcript_variant	benign/likely_benign	
+non_coding_transcript_exon_variant	MODIFIER	0	0	non_coding_variant	benign/likely_benign	
+non_coding_transcript_variant	MODIFIER	NA	0	non_coding_variant	benign/likely_benign	
+regulatory_region_amplification	MODIFIER	NA	0	regulatory_region_amplification	benign/likely_benign	
+regulatory_region_variant	MODIFIER	NA	0	regulatory_region_variant	benign/likely_benign	
+start_retained	LOW	NA	0	synonymous_variant	benign/likely_benign	similar to synonymous_variant
+stop_retained_variant	LOW	NA	0	synonymous_variant	benign/likely_benign	similar to synonymous_variant
+synonymous_variant	LOW	0	0	synonymous_variant	benign/likely_benign	similar to synonymous_variant
+TFBS_amplification	MODIFIER	NA	0	TFBS_amplification	benign/likely_benign	
+transcript_amplification	MODIFIER	NA	0	transcript_amplification	benign/likely_benign	
+transcript_variant	MODIFIER	NA	0	transcript_variant	benign/likely_benign	
+upstream_gene_variant	MODIFIER	0	0	upstream_gene_variant	benign/likely_benign	
+sequence_feature	NA	NA	0	sequence_feature	benign/likely_benign	
+non_coding_exon_variant	NA	NA	0	non_coding_variant	benign/likely_benign	
+protein_protein_contact	NA	NA	0	protein_protein_contact	benign/likely_benign	
+structural_interaction_variant	NA	NA	0	structural_interaction_variant	benign/likely_benign	
