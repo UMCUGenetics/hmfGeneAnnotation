@@ -1,7 +1,0 @@
-"sample"	"chrom"	"pos"	"ref"	"alt"	"gt"	"gene"
-"1"	"CPCT02180015R"	"chr11"	108129785	"G"	"A"	"HomozygousReferenceGenotype"	"ATM"
-"2"	"DRUP01140001R"	"chr11"	108138056	"C"	"T"	"HomozygousReferenceGenotype"	"ATM"
-"3"	"CPCT02010527R"	"chr11"	108138003	"T"	"C"	"HeterozygousGenotype"	"ATM"
-"4"	"CPCT02070207R"	"chr11"	108139191	"T"	"G"	"HomozygousReferenceGenotype"	"ATM"
-"5"	NA	NA	NA	NA	NA	NA	NA
-"6"	"DRUP01050028R"	"chr11"	108142000	"C"	"T"	"HomozygousReferenceGenotype"	"ATM"
