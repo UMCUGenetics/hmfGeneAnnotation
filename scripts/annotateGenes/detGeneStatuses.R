@@ -22,12 +22,12 @@ input_paths <- list(
 )
 sample_name <- args[6]
 
-# sample_name='CPCT02020306R_CPCT02020306T'
+# sample_name='CPCT02050135R_CPCT02050135T'
 # out_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_update/vcf_subset/',sample_name)
 # input_paths <- list(
 #    cnv = paste0(out_dir,'/',sample_name,'.purple.gene.cnv'),
-#    germ = paste0(out_dir,'/varsigs_germ.txt.gz'),
-#    som = paste0(out_dir,'/varsigs_som.txt.gz'),
+#    germ = paste0(out_dir,'/varsig/',sample_name,'_varsigs_germ.txt.gz'),
+#    som = paste0(out_dir,'/varsig/',sample_name,'_varsigs_som.txt.gz'),
 #    purity = paste0(out_dir,'/',sample_name,'.purple.purity')
 # )
 
@@ -38,10 +38,10 @@ input <- list(
    purity = read.table(input_paths$purity, skip=1)[,1]
 )
 
-
-
-
 #========= Convert predictors to values =========#
+#mut_profile_dir <- paste0(out_dir,'/mut_profile/')
+#if(!dir.exists(mut_profile_dir)){ dir.create(mut_profile_dir) }
+
 mut_profile_paths <- list(
    cnv = paste0(out_dir,'/mut_profile_cnv.txt.gz'),
    germ = paste0(out_dir,'/mut_profile_germ.txt.gz'),
@@ -108,13 +108,17 @@ if(!all(sapply(mut_profile_paths, file.exists)) | OPTIONS$overwrite.mut.profiles
       return(cnv_scores)
    }
    
-   calcSnvIndelScores <- function(snpeff.eff, clinvar.eff, enigma.eff, show.raw=F){
-      # snpeff.eff=input$som$snpeff_eff
-      # clinvar.eff=input$som$clinvar_sig
-      # enigma.eff=input$som$enigma_sig
+   calcSnvIndelScores <- function(snpeff.eff, clinvar.eff, enigma.eff, cadd.phred, cap.score, cap.type, show.raw=F){
+      # type='germ'
+      # snpeff.eff=input[[type]]$snpeff_eff
+      # clinvar.eff=input[[type]]$clinvar_sig
+      # enigma.eff=input[[type]]$enigma_sig
+      # cadd.phred=input[[type]]$cadd_phred
+      # cap.score=input[[type]]$cap_score
+      # cap.type=input[[type]]$cap_type
       # show.raw=T
       
-      ## Return empty variable if SNVs/indels present
+      ## Return empty variable if no SNVs/indels present
       if(
          (is.na(snpeff.eff) & is.na(clinvar.eff) & is.na(enigma.eff)) || 
          (length(snpeff.eff) == 0 & length(clinvar.eff) == 0 & length(enigma.eff) == 0)
@@ -137,41 +141,53 @@ if(!all(sapply(mut_profile_paths, file.exists)) | OPTIONS$overwrite.mut.profiles
          if(OPTIONS$verbose){ message('  Getting snpEff scores...') }
          snpeff_score <- unlist(lapply(snpeff.eff, function(i){
             #i=snpeff.eff[[530]]
-            if(grepl('&',i)){
-               i <- strsplit(i,'&')[[1]][1]
-            }
-            score <- SCORING$snpeff[SCORING$snpeff$ann == i,'score']
+            if(grepl('&',i)){ i <- strsplit(i,'&')[[1]][1] }
+            score <- SCORING$snpeff[i]
             
             ## If annotation not found in snpeff table, return 0
-            if(length(score) == 0 ){ score <- 0 }
+            if(is.na(score)){ score <- 0 }
             return(score)
-         }))
+         }), use.names=F)
          
          if(OPTIONS$verbose){ message('  Getting ClinVar scores...') }
          clinvar_score <- unlist(lapply(clinvar.eff, function(i){
-            ifelse(
-               is.na(i), 0, ## variants not found in db will have NA (from preprocessing with bash scripts)
-               SCORING$clinvar[SCORING$clinvar$ann == i,'score']
-            )
-         }))
+            ifelse(is.na(i), 0, SCORING$clinvar[i])
+         }), use.names=F)
          
          if(OPTIONS$verbose){ message('  Getting ENIGMA scores...') }
          enigma_score <- unlist(lapply(enigma.eff, function(i){
-            ifelse(
-               is.na(i), 0,
-               SCORING$enigma[SCORING$enigma$ann == i,'score']
-            )
-         }))
+            ifelse(is.na(i), 0, SCORING$enigma[i])
+         }), use.names=F)
          
-         out <- data.frame(snpeff_score, clinvar_score, enigma_score)
+         # if(OPTIONS$verbose){ message('  Calculating integer CADD scores...') }
+         # cadd_int_score <- unlist(lapply(cadd.phred, function(i){
+         #    ifelse(is.na(i) || i <= CUTOFFS$min.cadd.phred, 0, 5)
+         # }), use.names=F)
          
-         ## Calculate max score and which database it came from 
-         #db_names <- str_remove_all(colnames(out),"_score")
-         db_names <- gsub('_score','',colnames(out))
+         if(OPTIONS$verbose){ message('  Calculating integer MCAP scores...') }
+         mcap_int_score <- unlist(Map(function(cap.score, cap.type){
+            if(is.na(cap.type) || cap.type != 'mcap'){ 0 }
+            else{ ifelse(cap.score >= CUTOFFS$min.mcap.score, 5, 0) }
+         }, cap.score, cap.type), use.names=F)
+         
+         if(OPTIONS$verbose){ message('  Calculating integer SCAP scores...') }
+         scap_int_score <- unlist(Map(function(cap.score, cap.type){
+            #print(paste(cap.score, cap.type))
+            if(is.na(cap.type) || cap.type == 'mcap'){ 0 }
+            else { ifelse(cap.score >= CUTOFFS$scap.cutoffs[cap.type], 5, 0) }
+         }, cap.score, cap.type), use.names=F)
+         
+         #out <- data.frame(snpeff_score, clinvar_score, enigma_score, cadd_int_score, mcap_int_score, scap_int_score)
+         
+         ## Exclude CADD score
+         out <- data.frame(snpeff_score, clinvar_score, enigma_score, mcap_int_score, scap_int_score)
+         
+         ## Calculate max score and which database it came from
+         db_names <- sapply(strsplit(colnames(out),'_'), `[`, 1, USE.NAMES = F)
          max_scores <- do.call(rbind, lapply(1:nrow(out), function(i){
-            #i = 802
+            #i = 83
             r <- unlist(out[i,], use.names = F)
-            max_score <- max(r)
+            max_score <- max(r, na.rm = T)
             
             if(max_score == 0){ max_score_origin <- 'none' }
             else{
@@ -185,7 +201,15 @@ if(!all(sapply(mut_profile_paths, file.exists)) | OPTIONS$overwrite.mut.profiles
          out <- cbind(out, max_scores)
          
          if(show.raw){
-            out <- cbind(snpeff_eff=snpeff.eff, clinvar_eff=clinvar.eff, enigma_eff=enigma.eff, out)
+            out <- cbind(
+               snpeff_eff=snpeff.eff, 
+               clinvar_eff=clinvar.eff, 
+               enigma_eff=enigma.eff,
+               cadd_phred=cadd.phred,
+               cap_score=cap.score,
+               cap_type=cap.type,
+               out
+            )
          }
       }
       return(out)
@@ -278,7 +302,7 @@ if(!all(sapply(mut_profile_paths, file.exists)) | OPTIONS$overwrite.mut.profiles
    makeGeneMutProfileGermSom <- function(df, mode){
       cbind(
          df[,c('ensembl_gene_id','snpeff_gene','chrom','pos','ref','alt','hgvs_c')],
-         calcSnvIndelScores(df$snpeff_eff, df$clinvar_sig, df$enigma_sig, show.raw=T),
+         calcSnvIndelScores(df$snpeff_eff, df$clinvar_sig, df$enigma_sig, df$cadd_phred, df$cap_score, df$cap_type, show.raw=T),
          calcAdjTumorAd(df$tumor_ad_ref, df$tumor_ad_alt, input$purity, mode = mode)
       )
    }
@@ -355,11 +379,13 @@ sel_cols <- list(
    cnv = c('min_minor_allele_ploidy','min_copy_number','max_copy_number','cn_diff_in_gene',
            'full_gene_loss','loh','cn_break_in_gene','amp'),
    
-   germ = c('snpeff_eff','clinvar_eff','enigma_eff','max_score','max_score_origin','adj_tumor_ad_ref',
-            'adj_tumor_ad_alt','alt_exists','ref_loss'),
+   germ = c('snpeff_eff','clinvar_eff','enigma_eff','max_score','max_score_origin',
+            'cadd_phred','cap_score','cap_type',
+            'adj_tumor_ad_ref','adj_tumor_ad_alt','alt_exists','ref_loss'),
    
-   som  = c('snpeff_eff','clinvar_eff','enigma_eff','max_score','max_score_origin','adj_tumor_ad_ref',
-            'adj_tumor_ad_alt','alt_exists')
+   som  = c('snpeff_eff','clinvar_eff','enigma_eff','max_score','max_score_origin',
+            'cadd_phred','cap_score','cap_type',
+            'adj_tumor_ad_ref','adj_tumor_ad_alt','alt_exists')
 )
 
 ## Main
@@ -419,8 +445,6 @@ gene_statuses <- (function(){
 
 ## Remove genes not in gene selection
 gene_statuses <- gene_statuses[gene_statuses$ensembl_gene_id %in% genes_bed$ensembl_gene_id,]
-
-
 
 
 #========= Determine hit score, then deficient genes =========#
