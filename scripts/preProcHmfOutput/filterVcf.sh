@@ -9,7 +9,8 @@ source $ROOT_DIR/loadPaths.sh
 filterVcf(){
 	vcf_in=$1
 	vcf_out=$2
-	mode=$3
+	genes_bed=$3
+	mode=$4
 
 	# vcf_in=/hpc/cog_bioinf/cuppen/project_data/HMF_data/DR010-update/data/180426_HMFregCPCT_FR13997274_FR16982076_CPCT02020719/180426_HMFregCPCT_FR13997274_FR16982076_CPCT02020719.annotated.vcf.gz
 	# vcf_out=/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_update/vcf_subset/CPCT02020719R_CPCT02020719T/CPCT02020719R_CPCT02020719T.germ.vcf.gz
@@ -25,7 +26,7 @@ filterVcf(){
 	fi
 
 	zcat $vcf_in |
-	$JAVA -jar $SNPSIFT intervals $GENES_BED |
+	$JAVA -jar $SNPSIFT intervals $genes_bed |
 	$JAVA -jar $SNPSIFT filter "$filt_string" |
 	gzip -c > $vcf_out
 }
