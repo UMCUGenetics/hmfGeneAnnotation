@@ -36,5 +36,5 @@ getCapAnn_py=$getAnnotations_dir/getCapAnn.py
 
 ## annotateGenes
 annotateGenesExec_sh=$ROOT_DIR/scripts/annotateGenes/annotateGenesExec.sh
-detGeneStatuses_R=$ROOT_DIR//scripts/annotateGenes/detGeneStatuses.R
+detGeneStatuses_R=$ROOT_DIR//scripts/pipeline/detGeneStatuses_exec.R
 
