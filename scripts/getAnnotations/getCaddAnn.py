@@ -8,7 +8,9 @@ import argparse
 
 #========= Get path to CADD database =========#
 ROOT_DIR='/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/'
-cadd_db_path=subprocess.check_output('cat '+ ROOT_DIR + 'loadPaths.sh | grep CADD_DB_SNV', shell=True).strip('\n').split('=')[1]
+cadd_db_path=subprocess.check_output('cat '+ ROOT_DIR + 'loadPaths.sh | grep -E "^CADD_DB_SNV"', shell=True)
+cadd_db_path=cadd_db_path.strip('\n').split('=')[1].split(' ')[0]
+cadd_db_path=cadd_db_path.replace('$ROOT_DIR',ROOT_DIR)
 
 #========= Main =========#
 def getCaddAnn (in_txt_path, out_txt_path):
@@ -43,12 +45,12 @@ def getCaddAnn (in_txt_path, out_txt_path):
 
 			if len(ref)==1 and len(alt)==1: ## skip indels
 				for i in tabix_output:
-					if i[2]==ref and i[4]==alt: 
+					if i[2]==ref and i[3]==alt: 
 						cadd_phred=i[-1]
 						break
 
 			## output
-			#print "{} {} {} {} {} {} {} {}".format(ref, alt, tabix_entry[0],tabix_entry[1],tabix_entry[2],tabix_entry[4],tabix_entry[-1],tabix_entry[-21])
+			#print "{} {} {}".format(ref, alt, cadd_phred)
 			#print cadd_phred
 			out_txt.writelines(cadd_phred + '\n')
 
