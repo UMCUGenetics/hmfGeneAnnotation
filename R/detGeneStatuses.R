@@ -18,19 +18,19 @@ detGeneStatuses <- function(
    som.path, 
    purity.path, 
    genes.bed.path, 
-   init.path=NULL
+   init.path
 ){
    
-   options(stringsAsFactors=F)
-   
    #========= Inputs =========#
+   options(stringsAsFactors=F)
    ## Testing
    # sample_name='CPCT02070023R_CPCT02070023TII'
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_update/vcf_subset/',sample_name)
-   
-   # sample_name='P43_A1618_A1619'
+
+   # sample_name='P10_A2988N_A228pT'
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/vcf_subset/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
+   # init.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/scripts/annotate_genes/detGeneStatuses_init.R'
    # 
    # input_paths <- list(
    #    cnv = paste0(in_dir,'/',sample_name,'.purple.gene.cnv'),
@@ -38,7 +38,7 @@ detGeneStatuses <- function(
    #    som = paste0(in_dir,'/varsig/',sample_name,'_varsigs_som.txt.gz'),
    #    purity = paste0(in_dir,'/',sample_name,'.purple.purity')
    # )
-   
+   # 
    # input <- list(
    #    cnv = read.delim(input_paths$cnv),
    #    germ = read.delim(input_paths$germ),
@@ -54,7 +54,7 @@ detGeneStatuses <- function(
    # print(genes.bed.path)
    # print(init.path)
    
-   if(!is.null(init.path)){ source(init.path) }
+   source(init.path)
    
    input <- list(
       cnv = read.delim(cnv.path),
@@ -107,78 +107,78 @@ detGeneStatuses <- function(
    biall_mut_profile <- mkBialleleMutProfile(mut_profile)
    
    if(OPTIONS$verbose){ message('\n## Determining hit_scores...') }
-   
+
    if(OPTIONS$verbose){ message('  cnv + germ...') }
    biall_mut_profile$cnv_germ <- (function(){
       df <- biall_mut_profile$cnv_germ
-      
+
       hit_scores <- do.call(rbind, Map(
          calcHitScore, mode='cnv_germ',
-         
+
          full_gene_loss = df$full_gene_loss,
          loh = df$loh,
-         
+
          germ.max_score = df$max_score,
          germ.alt_exists = df$alt_exists,
          germ.ref_loss = df$ref_loss,
-         
+
          cn_break_in_gene = df$cn_break_in_gene,
-         
+
          min.hit.score = CUTOFFS$min.hit.score,
-         
+
          USE.NAMES=F
       ))
-      
+
       cbind(df, hit_scores)
    })()
-   
+
    if(OPTIONS$verbose){ message('  cnv + som...') }
    biall_mut_profile$cnv_som <- (function(){
       df <- biall_mut_profile$cnv_som
-      
+
       hit_scores <- do.call(rbind, Map(
          calcHitScore, mode='cnv_som',
-         
+
          full_gene_loss = df$full_gene_loss,
          loh = df$loh,
-         
+
          som.max_score = df$max_score,
          som.alt_exists = df$alt_exists,
-         
+
          cn_break_in_gene = df$cn_break_in_gene,
-         
+
          min.hit.score = CUTOFFS$min.hit.score,
-         
+
          USE.NAMES=F
       ))
-      
+
       cbind(df, hit_scores)
    })()
-   
+
    if(OPTIONS$verbose){ message('  germ + som...') }
    biall_mut_profile$germ_som <- (function(){
       df <- biall_mut_profile$germ_som
-      
+
       hit_scores <- do.call(rbind, Map(
          calcHitScore, mode='germ_som',
-         
+
          germ.max_score = df$germ.max_score,
          som.max_score = df$som.max_score,
-         
+
          germ.alt_exists = df$germ.alt_exists,
          som.alt_exists = df$som.alt_exists,
-         
+
          germ.ref_loss = df$ref_loss,
          cn_break_in_gene = df$cn_break_in_gene,
-         
+
          min.hit.score = CUTOFFS$min.hit.score,
-         
+
          USE.NAMES=F
       ))
-      
+
       cbind(df, hit_scores)
    })()
-   
+
    if(OPTIONS$verbose){ message('  Exporting tables...') }
    for(i in names(biall_mut_profile)){
       write.table(
@@ -188,16 +188,16 @@ detGeneStatuses <- function(
       )
    }
    #subset(biall_mut_profile$cnv_germ, loh==5)
-   
+
    # if(OPTIONS$verbose){ message('Exporting mutation profile...') }
    # write.tsv <- function(...){ write.table(..., sep='\t',quote=F,row.names=F) }
    # write.tsv(mut_profile$cnv, gzfile(mut_profile_paths$cnv))
    # write.tsv(mut_profile$germ, gzfile(mut_profile_paths$germ))
    # write.tsv(mut_profile$som, gzfile(mut_profile_paths$som))
-   
+
    #========= Gene diplotypes =========#
    if(OPTIONS$verbose){ message('\n## Determining gene diplotypes...') }
-   
+
    ## Placing cnv_som before cnv_germ prioritizes loh+som events being displayed after overall
    ## getGeneMaxEff step
    gene_diplotypes <- lapply(c('cnv_som','cnv_germ','germ_som'), function(i){
@@ -207,24 +207,24 @@ detGeneStatuses <- function(
       getGeneDiplotypes(biall_mut_profile[[i]], i, simplify.snpeff.eff=T)
    })
    names(gene_diplotypes) <- c('cnv_som','cnv_germ','germ_som')
-   
+
    if(OPTIONS$verbose){ message('\n## Determining most pathogenic diplotype per gene...') }
    gene_diplotypes_max <- (function(){
       if(OPTIONS$verbose){ message('  Getting max effect per cnv_germ, cnv_som, germ_som table...') }
       df <- do.call(rbind, lapply(gene_diplotypes, function(i){
          getGeneMaxEff(i, colname='hit_score', show.n.max = T)
       }))
-      
+
       if(OPTIONS$verbose){ message('  Getting overall max effect...') }
       df <- getGeneMaxEff(df, colname='hit_score', show.n.max = T)
       df <- df[order(df$hgnc_symbol),]
-      
+
       return(df)
    })()
-   
+
    # subset(gene_diplotypes_max, hit_score>=10)
    # table(gene_diplotypes_max$a1)
-   
+
    if(OPTIONS$verbose){ message('\n## Exporting gene diplotype tables...') }
    for(i in names(gene_diplotypes)){
       write.table(
@@ -233,7 +233,7 @@ detGeneStatuses <- function(
          sep='\t', quote=F, row.names=F
       )
    }
-   
+
    write.table(
       gene_diplotypes_max,
       gzfile(paste0(out.dir,'/gene_diplotypes_max.txt.gz')),
