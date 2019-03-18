@@ -8,7 +8,9 @@
 #' @export
 #'
 getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
-
+   
+   #df=biall_mut_profile$cnv_som
+   
    SEL_COLS <- list(
       common=c('ensembl_gene_id','hgnc_symbol','hit_score','def_type','is_def'),
       allele=c('chrom','pos','hgvs_c','max_score','max_score_origin')
@@ -30,20 +32,22 @@ getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
          row <- df[i,]
          if(row$full_gene_loss==SCORING$full_gene_loss){
             a1 <- a2 <- 'full_gene_loss'
+            a1.origin <- a2.origin <- 'cnv'
          } else if(row$loh==SCORING$loh) {
             a1 <- 'loh'
+            a1.origin <- 'cnv'
             a2 <- row$snpeff_eff
+            a2.origin <- if(mode=='cnv_germ'){ 'germ' } else if(mode=='cnv_som'){ 'som' }
          } else {
             a1 <- 'none'
+            a1.origin <- 'cnv'
             a2 <- row$snpeff_eff
+            a2.origin <- if(mode=='cnv_germ'){ 'germ' } else if(mode=='cnv_som'){ 'som' }
          }
 
-         return(data.frame(a1,a2))
+         return(data.frame(a1,a2,a1.origin,a2.origin))
       }))
 
-      if(simplify.snpeff.eff){
-         diplotypes$a2 <- simplifySnpeffEff(diplotypes$a2)
-      }
 
       out_a1 <- (function(){
          col_names <- c(paste0('a1.', SEL_COLS$allele))
@@ -51,26 +55,38 @@ getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
          out_a1 <- data.frame(matrix(nrow=nrow(df),ncol=length(col_names)))
          colnames(out_a1) <- col_names
 
-         out_a1 <- cbind(out_a1, a1=diplotypes$a1)
+         out_a1 <- cbind(out_a1, diplotypes[,c('a1','a1.origin')])
 
          return(out_a1)
       })()
 
       out_a2 <- df[,SEL_COLS$allele]
       colnames(out_a2) <- paste0('a2.',colnames(out_a2))
-      out_a2$a2 <- df$snpeff_eff
+      
+      out_a2 <- cbind(out_a2, diplotypes[,c('a2','a2.origin')])
+      
+      out_a2$a2 <- 
+         if(simplify.snpeff.eff){
+            simplifySnpeffEff(diplotypes$a2)
+         } else {
+            diplotypes$a2
+         }
 
-      out <- cbind(df[,SEL_COLS$common], diplotype_origin=mode, out_a1, out_a2)
+      out <- cbind(df[,SEL_COLS$common], diplotype_origin = mode, out_a1, out_a2)
    }
 
    if(mode=='germ_som'){
       out <- cbind(
          df[,SEL_COLS$common],
          diplotype_origin = mode,
+         
          df[,paste0('germ.',SEL_COLS$allele)],
          a1=df$germ.snpeff_eff,
+         a1.origin='germ',
+         
          df[,paste0('som.',SEL_COLS$allele)],
-         a2=df$som.snpeff_eff
+         a2=df$som.snpeff_eff,
+         a2.origin='som'
       )
 
       colnames(out) <- gsub('germ','a1',colnames(out))
