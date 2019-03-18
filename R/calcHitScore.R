@@ -18,7 +18,7 @@
 
 calcHitScore <- function(
    mode=NULL,
-   min.hit.score=6,
+   min.hit.score=0,
    ignore.additional.evidence=F,
 
    ## cnv
