@@ -1,6 +1,6 @@
 #' Per gene, get row(s) where score is max
 #'
-#' @param df A dataframe containing ensembl_gene_id and the desired column for subsetting
+#' @param df A dataframe containing ensembl_gene_id
 #' @param mode Can be: 'cnv_germ', 'cnv_som', 'germ_som'.
 #' @param simplify.snpeff.eff Simplify snpeff_eff (e.g. stop_gained, stop_loss; becomes nonsense)
 #'
@@ -48,7 +48,7 @@ getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
          return(data.frame(a1,a2,a1.origin,a2.origin))
       }))
 
-
+      ## Initiate empty dataframe with same nrows as input df
       out_a1 <- (function(){
          col_names <- c(paste0('a1.', SEL_COLS$allele))
 
@@ -59,6 +59,12 @@ getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
 
          return(out_a1)
       })()
+      
+      ## Add chrom info
+      out_a1$a1.chrom <- df$chrom
+      
+      ## Assign score for loh/full_gene_loss
+      out_a1$a1.max_score <- unlist(lapply(out_a1$a1, function(i){ ifelse(i!='none',5,0) }))
 
       out_a2 <- df[,SEL_COLS$allele]
       colnames(out_a2) <- paste0('a2.',colnames(out_a2))
