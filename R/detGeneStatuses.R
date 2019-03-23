@@ -200,25 +200,18 @@ detGeneStatuses <- function(
 
    ## Placing cnv_som before cnv_germ prioritizes loh+som events being displayed after overall
    ## getGeneMaxEff step
-   gene_diplotypes <- lapply(c('cnv_som','cnv_germ','germ_som'), function(i){
+   gene_diplotypes <- do.call(rbind, lapply(c('cnv_som','cnv_germ','germ_som'), function(i){
       if(OPTIONS$verbose){
          message(sprintf('  %s...',sub('_',' + ',i)))
       }
       getGeneDiplotypes(biall_mut_profile[[i]], i, simplify.snpeff.eff=T)
-   })
-   names(gene_diplotypes) <- c('cnv_som','cnv_germ','germ_som')
+   }))
+   #names(gene_diplotypes) <- c('cnv_som','cnv_germ','germ_som')
 
    if(OPTIONS$verbose){ message('\n## Determining most pathogenic diplotype per gene...') }
    gene_diplotypes_max <- (function(){
-      if(OPTIONS$verbose){ message('  Getting max effect per cnv_germ, cnv_som, germ_som table...') }
-      df <- do.call(rbind, lapply(gene_diplotypes, function(i){
-         getGeneMaxEff(i, colname='hit_score', show.n.max = T)
-      }))
-
-      if(OPTIONS$verbose){ message('  Getting overall max effect...') }
-      df <- getGeneMaxEff(df, colname='hit_score', show.n.max = T)
+      df <- getGeneMaxEff(gene_diplotypes, colname='hit_score', show.n.max=T)
       df <- df[order(df$hgnc_symbol),]
-
       return(df)
    })()
 
@@ -226,13 +219,11 @@ detGeneStatuses <- function(
    # table(gene_diplotypes_max$a1)
 
    if(OPTIONS$verbose){ message('\n## Exporting gene diplotype tables...') }
-   for(i in names(gene_diplotypes)){
-      write.table(
-         gene_diplotypes[[i]],
-         gzfile(paste0(out.dir,'/gene_diplotypes_',i,'.txt.gz')),
-         sep='\t', quote=F, row.names=F
-      )
-   }
+   write.table(
+      gene_diplotypes,
+      gzfile(paste0(out.dir,'/gene_diplotypes.txt.gz')),
+      sep='\t', quote=F, row.names=F
+   )
 
    write.table(
       gene_diplotypes_max,
