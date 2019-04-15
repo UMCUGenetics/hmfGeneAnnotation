@@ -44,7 +44,7 @@ mkMutProfileSnvIndel <- function(
    keep.only.first.eff=T,
    verbose=T
 ){
-
+   
    #--------- Sanity checks ---------#
    if(nrow(df.snv.indel)==0){ stop(return(NA)) }
    if(!(mode %in% c('germline','somatic'))){ stop("Please specify mode: 'germline', 'somatic'") }
@@ -53,26 +53,31 @@ mkMutProfileSnvIndel <- function(
 
    #--------- Score annotations ---------#
    if(verbose){ message('Getting snpEff scores...') }
-   snpeff_score <- unlist(lapply(df.snv.indel$snpeff_eff, function(i){
-      #i=snpeff.eff[[530]]
+   # snpeff_score <- unlist(lapply(df.snv.indel$snpeff_eff, function(i){
+   #    #i=snpeff.eff[[530]]
+   #    if(grepl('&',i)){ i <- strsplit(i,'&')[[1]][1] }
+   #    SCORING$snpeff[i]
+   # }), use.names=F)
+   snpeff_eff <- unlist(lapply(df.snv.indel$snpeff_eff, function(i){
       if(grepl('&',i)){ i <- strsplit(i,'&')[[1]][1] }
-      score <- SCORING$snpeff[i]
-
-      ## If annotation not found in snpeff table, return 0
-      if(is.na(score)){ score <- 0 }
-      return(score)
-   }), use.names=F)
+      return(i)
+   }))
+   snpeff_score <- unname(SCORING$snpeff)[ match(snpeff_eff,names(SCORING$snpeff)) ]
+   snpeff_score[is.na(snpeff_score)] <- 0 ## If annotation not found in snpeff table, return 0
 
    if(verbose){ message('Getting ClinVar scores...') }
-   clinvar_score <- unlist(lapply(df.snv.indel$clinvar_sig, function(i){
-      ifelse(is.na(i), 0, SCORING$clinvar[i])
-   }), use.names=F)
+   # clinvar_score <- unlist(lapply(df.snv.indel$clinvar_sig, function(i){
+   #    ifelse(is.na(i), 0, SCORING$clinvar[i])
+   # }), use.names=F)
+   clinvar_score <- unname(SCORING$clinvar)[ match(df.snv.indel$clinvar_sig,names(SCORING$clinvar)) ]
+   clinvar_score[is.na(clinvar_score)] <- 0
 
    if(verbose){ message('Getting ENIGMA scores...') }
-   enigma_score <- unlist(lapply(df.snv.indel$enigma_sig, function(i){
-      ifelse(is.na(i), 0, SCORING$enigma[i])
-   }), use.names=F)
-
+   # enigma_score <- unlist(lapply(df.snv.indel$enigma_sig, function(i){
+   #    ifelse(is.na(i), 0, SCORING$enigma[i])
+   # }), use.names=F)
+   enigma_score <- unname(SCORING$enigma)[ match(df.snv.indel$enigma_sig,names(SCORING$enigma)) ]
+   enigma_score[is.na(enigma_score)] <- 0
 
    sig_scores <- data.frame(
       snpeff_score, clinvar_score, enigma_score#,
@@ -82,21 +87,33 @@ mkMutProfileSnvIndel <- function(
    )
 
    ## Calculate max score and which database it came from
+   if(verbose){ message('Calculating max scores...') }
    db_names <- sapply(strsplit(colnames(sig_scores),'_'), `[`, 1, USE.NAMES = F)
-   max_sig_scores <- do.call(rbind, lapply(1:nrow(sig_scores), function(i){
-      #i = 83
-      r <- unlist(sig_scores[i,], use.names = F)
-      max_score <- max(r, na.rm = T)
-
+   
+   # max_sig_scores <- do.call(rbind, lapply(1:nrow(sig_scores), function(i){
+   #    #i = 83
+   #    r <- as.numeric(sig_scores[i,])
+   #    max_score <- max(r, na.rm = T)
+   #    
+   #    if(max_score == 0){ max_score_origin <- 'none' }
+   #    else{
+   #       max_score_origin <- db_names[which(r == max_score)]
+   #       max_score_origin <- paste(max_score_origin, collapse=',')
+   #    }
+   #    
+   #    return(data.frame(max_score, max_score_origin))
+   # }))
+   
+   max_sig_scores <- do.call(rbind, apply(sig_scores,1,function(i){
+      max_score <- max(i)
       if(max_score == 0){ max_score_origin <- 'none' }
       else{
-         max_score_origin <- db_names[which(r == max_score)]
+         max_score_origin <- db_names[which(i == max_score)]
          max_score_origin <- paste(max_score_origin, collapse=',')
       }
-
       return(data.frame(max_score, max_score_origin))
    }))
-
+   
    sig_scores <- cbind(sig_scores, max_sig_scores)
 
    ### Modifiy out ###
@@ -106,6 +123,7 @@ mkMutProfileSnvIndel <- function(
    )
 
    #--------- Calculate adjusted tumor allele depth ---------#
+   if(verbose){ message('Calculating adjusted tumor allele depths...') }
    if(ignore.additional.evidence){
       adj_tumor_ad_ref <- NA
       adj_tumor_ad_alt <- NA
@@ -141,41 +159,40 @@ mkMutProfileSnvIndel <- function(
       after = 'tumor_ad_alt'
    )
 
-   ## Post-processing
-   if(mode == 'germline'){
-      if(ignore.additional.evidence){
-         ad_diff_score <- NA
-         ref_loss <- NA
-      } else {
-         ## determine if ref is lost in germline
-         ad_diff_score <- unlist(Map(function(adj_tumor_ad_ref, adj_tumor_ad_alt){
-            ## ad_diff_score = alt/ref
-            ## Taking into account where: ref = 0, ref < 0, and alt <= 0 (to prevent errors)
-            if( is.na(adj_tumor_ad_ref) || is.na(adj_tumor_ad_alt) || adj_tumor_ad_alt <= 0 ){
-               ad_diff_score <- 0
-
-            } else if(adj_tumor_ad_ref < 0){
-               ## alt/ref makes no sense when ref is negative.
-               ## Set ref to 0: returns Inf or NaN
-               ad_diff_score <- adj_tumor_ad_alt/0
-
-            } else {
-               ad_diff_score <- adj_tumor_ad_alt/adj_tumor_ad_ref
-            }
-
-            return(ad_diff_score)
-         }, adj_tumor_ad_ref, adj_tumor_ad_alt, USE.NAMES=F))
-
-         ref_loss <- ad_diff_score >= CUTOFFS$min.germ.ad.diff.score
-      }
-
-      ### Modifiy out ###
-      out <- insColAfter(
-         out,
-         cbind(ad_diff_score, ref_loss),
-         after = 'alt_exists'
-      )
+   #--------- Determine if ref is lost ---------#
+   if(verbose){ message('Determining if ref is lost...') }
+   if(ignore.additional.evidence){
+      ad_diff_score <- NA
+      ref_loss <- NA
+   } else {
+      ad_diff_score <- unlist(Map(function(adj_tumor_ad_ref, adj_tumor_ad_alt){
+         ## ad_diff_score = alt/ref
+         ## Taking into account where: ref = 0, ref < 0, and alt <= 0 (to prevent errors)
+         if( is.na(adj_tumor_ad_ref) || is.na(adj_tumor_ad_alt) || adj_tumor_ad_alt <= 0 ){
+            ad_diff_score <- 0
+            
+         } else if(adj_tumor_ad_ref < 0){
+            ## alt/ref makes no sense when ref is negative.
+            ## Set ref to 0: returns Inf or NaN
+            ad_diff_score <- adj_tumor_ad_alt/0
+            
+         } else {
+            ad_diff_score <- adj_tumor_ad_alt/adj_tumor_ad_ref
+         }
+         
+         return(ad_diff_score)
+      }, adj_tumor_ad_ref, adj_tumor_ad_alt, USE.NAMES=F))
+      
+      ref_loss <- ad_diff_score >= CUTOFFS$min.ad.diff.score
    }
+
+   ### Modifiy out ###
+   out <- insColAfter(
+      out,
+      cbind(ad_diff_score, ref_loss),
+      after = 'alt_exists'
+   )
+   # }
 
    #--------- Get ENSG if if not exist ---------#
    ### Modifiy out ###
