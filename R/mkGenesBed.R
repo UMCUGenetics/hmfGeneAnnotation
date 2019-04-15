@@ -14,6 +14,12 @@
 #' 
 #' base_dir='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/'
 #' 
+#' ROOT_DIR='/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/'
+#' if(dir.exists('/Users/lnguyen/')){
+#'    ROOT_DIR <- paste0('/Users/lnguyen/', ROOT_DIR)
+#' }
+#' GENES_HGNC <- read.delim(paste0(ROOT_DIR,'/data/gene_selection/hgnc_gene_names_20190311.txt'), stringsAsFactors=F)
+#' 
 #' gene_list <- paste0(base_dir,'/scripts_main/hmfGeneAnnotation/data/gene_selection/gene_list.xlsx')
 #' gene_list <- list(
 #'    cancer = as.data.frame(read_excel(gene_list, sheet = 'cancer_genes')),
@@ -25,9 +31,20 @@
 #' gene_list$other <- subset(gene_list$selected, is_hr_gene==F)
 #' gene_list$selected <- NULL
 #' 
-#' bed <- do.call(rbind,lapply(gene_list, function(i){
+#' ## Main
+#' bed <- lapply(gene_list, function(i){
 #'    mkGenesBed(i$gene)
-#' }))
+#' })
+#' 
+#' ## rm genes in both cancer_genes and selected_genes table
+#' bed <- bed[c('hr','cancer','other')] ## Set hr table first to retain is_hr_gene==T annotation
+#' 
+#' bed$hr$is_hr_gene <- T
+#' bed$cancer$is_hr_gene <- F
+#' bed$other$is_hr_gene <- F
+#' 
+#' bed <- do.call(rbind, bed)
+#' bed <- bed[!duplicated(bed$ensembl_gene_id),] 
 #' 
 #' write.table(
 #'    bed,
@@ -35,12 +52,12 @@
 #'    sep='\t',row.names=F,quote=F
 #' )
 
-
 require(biomaRt)
 require(stringr)
 
 mkGenesBed <- function(gene.names, genes.hgnc=GENES_HGNC, out.path=NULL, verbose=T, ...){
    #gene.names = gene_list$cancer$gene
+   #gene.names = gene_list$other$gene
    
    if(verbose){ message('Retrieving ENSGs using GENES_HGNC (pre-computed HGNC database) ...') }
    ensg <- geneNamesToEnsg(gene.names, genes.hgnc=genes.hgnc, na.rough.fix = T)
