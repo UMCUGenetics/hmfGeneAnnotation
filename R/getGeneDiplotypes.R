@@ -12,8 +12,18 @@ getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
    #df=biall_mut_profile$cnv_som
    
    SEL_COLS <- list(
-      common=c('ensembl_gene_id','hgnc_symbol','hit_score','def_type','is_def'),
-      allele=c('chrom','pos','hgvs_c','max_score','max_score_origin')
+      common=c(
+         'ensembl_gene_id','hgnc_symbol',
+         'hit_score','hit_score_boosted',
+         'hit_type','def_type','is_def',
+         'cn_break_in_gene'
+      ),
+      allele=c(
+         'chrom','pos','hgvs_c',
+         #'ExAC_AC','ExAC_AF','gnomad_filter','gnomad_af',
+         'alt_exists','ref_loss',
+         'max_score','max_score_origin'
+      )
    )
 
    modes <- c('cnv_germ','cnv_som','germ_som')
