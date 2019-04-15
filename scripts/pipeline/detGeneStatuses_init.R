@@ -43,14 +43,13 @@ SCORING <- list(
    score_boost.full_gene_loss=0.3,
    score_boost.loh_som=0.2, ## LOH + som VUS likely has more impact than LOH + germ VUS
    score_boost.loh_germ=0.1,
-   score_boost.germ.som=0,
 
    ## Additional evidence
-
    cn_break_in_gene=0.01,
-   #cn_break_in_gene_loh=0.2, ## When CN break happens with LOH, gene is more likely to be deficient
-   #cn_break_in_gene_germ_som=0.1,
-   germ.ref_loss=0.01,
+   
+   germ.ref_loss=0.01, ## Check if adjusted REF AD is high --> no ref loss
+   som.ref_loss=0.01,
+   
    germ.alt_exists=0.001, ## Give bonus points when ALT AD is good
    som.alt_exists=0.001
 )
@@ -61,17 +60,18 @@ IS_DEF_MIN_HIT_SCORE <- c(
    'full_gene_loss' = SCORING$full_gene_loss,
 
    ## loh & som.max_score==5 & som.alt_exists
-   'loh+som' = SCORING$loh + 5 + SCORING$som.alt_exists,
+   'loh+som' = SCORING$loh + 5 + 
+      min(SCORING$som.ref_loss, SCORING$cn_break_in_gene),
 
    ## loh & germ.max_score==5 & germ.alt_exists & (germ.ref_loss | cn_break_in_gene)
    'loh+germ' =
       SCORING$loh + 5 +
-      SCORING$germ.alt_exists + min(SCORING$germ.ref_loss, SCORING$cn_break_in_gene_loh),
+      SCORING$germ.alt_exists + min(SCORING$germ.ref_loss, SCORING$cn_break_in_gene),
 
    ## germ.max_score==5 & som.max_score==5 & germ.alt_exists & (germ.ref_loss | cn_break_in_gene) & som.alt_exists )
    'germ+som' = 5 + 5 +
-      SCORING$germ.alt_exists + min(SCORING$germ.ref_loss, SCORING$cn_break_in_gene_germ_som) +
-      SCORING$som.alt_exists
+      SCORING$germ.alt_exists + min(SCORING$germ.ref_loss, SCORING$cn_break_in_gene) +
+      SCORING$som.alt_exists + min(SCORING$som.ref_loss, SCORING$cn_break_in_gene)
 )
 
 #--------- Cutoffs ---------#
@@ -81,8 +81,8 @@ CUTOFFS <- list(
    max.min.minor.allele.ploidy=0.2, ## loh
    min.cn.diff.in.gene=0.9, ## cn_break_in_gene
    min.adj.tumor.ad.alt=10, ## germ.alt_exists, som.alt_exists
-   min.germ.ad.diff.score=1.5, ## germ.ref_loss
-   min.hit.score=0
+   min.ad.diff.score=1.5, ## germ.ref_loss, som.ref_loss
+   min.hit.score.filter=4
 
    # min.cadd.phred=20,
    # min.mcap.score=0.88,
