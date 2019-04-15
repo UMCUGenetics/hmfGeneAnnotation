@@ -23,9 +23,11 @@ detGeneStatuses <- function(
    
    #========= Inputs =========#
    options(stringsAsFactors=F)
+   
    ## Testing
    # sample_name='CPCT02070023R_CPCT02070023TII'
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_update/vcf_subset/',sample_name)
+   # init.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_init.R'
 
    # sample_name='P10_A2988N_A228pT'
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/vcf_subset/',sample_name)
@@ -124,7 +126,7 @@ detGeneStatuses <- function(
 
          cn_break_in_gene = df$cn_break_in_gene,
 
-         min.hit.score = CUTOFFS$min.hit.score,
+         min.hit.score.filter = CUTOFFS$min.hit.score,
 
          USE.NAMES=F
       ))
@@ -144,10 +146,11 @@ detGeneStatuses <- function(
 
          som.max_score = df$max_score,
          som.alt_exists = df$alt_exists,
+         som.ref_loss = df$ref_loss,
 
          cn_break_in_gene = df$cn_break_in_gene,
 
-         min.hit.score = CUTOFFS$min.hit.score,
+         min.hit.score.filter = CUTOFFS$min.hit.score,
 
          USE.NAMES=F
       ))
@@ -168,10 +171,11 @@ detGeneStatuses <- function(
          germ.alt_exists = df$germ.alt_exists,
          som.alt_exists = df$som.alt_exists,
 
-         germ.ref_loss = df$ref_loss,
+         germ.ref_loss = df$germ.ref_loss,
+         som.ref_loss = df$som.ref_loss,
          cn_break_in_gene = df$cn_break_in_gene,
 
-         min.hit.score = CUTOFFS$min.hit.score,
+         min.hit.score.filter = CUTOFFS$min.hit.score,
 
          USE.NAMES=F
       ))
@@ -210,12 +214,13 @@ detGeneStatuses <- function(
 
    if(OPTIONS$verbose){ message('\n## Determining most pathogenic diplotype per gene...') }
    gene_diplotypes_max <- (function(){
-      df <- getGeneMaxEff(gene_diplotypes, colname='hit_score', show.n.max=T)
+      df <- getGeneMaxEff(gene_diplotypes, colname='hit_score_boosted', show.n.max=T)
       df <- df[order(df$hgnc_symbol),]
+      #df$hit_score_boosted <- NULL
       return(df)
    })()
 
-   # subset(gene_diplotypes_max, hit_score>=10)
+   # subset(gene_diplotypes_max, hgnc_symbol %in% c('BRCA1','BRCA2'))
    # table(gene_diplotypes_max$a1)
 
    if(OPTIONS$verbose){ message('\n## Exporting gene diplotype tables...') }
