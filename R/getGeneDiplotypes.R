@@ -21,7 +21,7 @@ getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
       allele=c(
          'chrom','pos','hgvs_c',
          #'ExAC_AC','ExAC_AF','gnomad_filter','gnomad_af',
-         'alt_exists','ref_loss',
+         'adj_tumor_ad_ref','adj_tumor_ad_alt','alt_exists','ad_diff_score','ref_loss',
          'max_score','max_score_origin'
       )
    )
@@ -38,25 +38,30 @@ getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
    }
 
    if(mode=='cnv_germ' | mode=='cnv_som'){
-      diplotypes <- do.call(rbind, lapply(1:nrow(df), function(i){
-         row <- df[i,]
-         if(row$full_gene_loss==SCORING$full_gene_loss){
+      origin_string <- if(mode=='cnv_germ'){ 'germ' } else if(mode=='cnv_som'){ 'som' }
+      
+      diplotypes <- as.data.frame(do.call(rbind, Map(function(full_gene_loss, loh, snpeff_eff){
+         
+         if(full_gene_loss==SCORING$full_gene_loss){
             a1 <- a2 <- 'full_gene_loss'
             a1.origin <- a2.origin <- 'cnv'
-         } else if(row$loh==SCORING$loh) {
+         } else if(loh==SCORING$loh) {
             a1 <- 'loh'
             a1.origin <- 'cnv'
-            a2 <- row$snpeff_eff
-            a2.origin <- if(mode=='cnv_germ'){ 'germ' } else if(mode=='cnv_som'){ 'som' }
+            a2 <- snpeff_eff
+            a2.origin <- origin_string
          } else {
             a1 <- 'none'
             a1.origin <- 'cnv'
-            a2 <- row$snpeff_eff
-            a2.origin <- if(mode=='cnv_germ'){ 'germ' } else if(mode=='cnv_som'){ 'som' }
+            a2 <- snpeff_eff
+            a2.origin <- origin_string
          }
-
-         return(data.frame(a1,a2,a1.origin,a2.origin))
-      }))
+         
+         return(c(
+            a1,a2,a1.origin,a2.origin
+         ))
+      }, df$full_gene_loss, df$loh, df$snpeff_eff)))
+      colnames(diplotypes) <- c('a1','a2','a1.origin','a2.origin')
 
       ## Initiate empty dataframe with same nrows as input df
       out_a1 <- (function(){
