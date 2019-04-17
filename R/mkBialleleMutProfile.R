@@ -20,7 +20,7 @@ mkBialleleMutProfile <- function(mut_profile, verbose=T){
          #'ExAC_AC','ExAC_AF','gnomad_filter','gnomad_af',
          'snpeff_eff','clinvar_sig','enigma_sig','max_score','max_score_origin',
          #'cadd_phred', 'cap_score','cap_type',
-         'adj_tumor_ad_ref','adj_tumor_ad_alt','alt_exists','ref_loss'
+         'adj_tumor_ad_ref','adj_tumor_ad_alt','alt_exists','ad_diff_score','ref_loss'
       ),
 
       som = c(
@@ -28,7 +28,7 @@ mkBialleleMutProfile <- function(mut_profile, verbose=T){
          #'ExAC_AC','ExAC_AF','gnomad_filter','gnomad_af',
          'snpeff_eff','clinvar_sig','enigma_sig','max_score','max_score_origin',
          #'cadd_phred', #'cap_score','cap_type',
-         'adj_tumor_ad_ref','adj_tumor_ad_alt','alt_exists','ref_loss'
+         'adj_tumor_ad_ref','adj_tumor_ad_alt','alt_exists','ad_diff_score','ref_loss'
       )
    )
 
@@ -51,7 +51,7 @@ mkBialleleMutProfile <- function(mut_profile, verbose=T){
 
    ## NOTE: slightly different for each combination
    if(verbose){ message('Merging mutation profiles and converting logicals to scores:') }
-   if(verbose){ message('  cnv + germline...') }
+   if(verbose){ message('  cnv + germ...') }
    out$cnv_germ <- (function(){
       ## Merge
       df_cnv <- mkValidDf('cnv')
