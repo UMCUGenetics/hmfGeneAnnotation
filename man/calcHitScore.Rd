@@ -4,32 +4,18 @@
 \alias{calcHitScore}
 \title{Calculate hit score that summarizes the biallelic state of a variant pair or gene}
 \usage{
-calcHitScore(mode = NULL, min.hit.score = 6,
-  ignore.additional.evidence = F, full_gene_loss = NA, loh = NA,
-  cn_break_in_gene = NA, germ.max_score = NA, germ.alt_exists = NA,
-  germ.ref_loss = NA, som.max_score = NA, som.alt_exists = NA)
+calcHitScore(df, mode, min.hit.score.filter = 0,
+  ignore.additional.evidence = F)
 }
 \arguments{
+\item{df}{A dataframe that is the output of mkBialleleMutProfile()}
+
 \item{mode}{Can be: 'cnv_germ', 'cnv_som', 'germ_som'. Hit score calculation is different for
 each biallele combination.}
 
-\item{min.hit.score}{Scores less than this will be set to 0.}
+\item{min.hit.score.filter}{Scores less than this will be set to 0.}
 
-\item{full_gene_loss}{Required by modes containing 'cnv'.}
-
-\item{loh}{Required by modes containing 'cnv'.}
-
-\item{cn_break_in_gene}{Required by all modes.}
-
-\item{germ.max_score}{Required by modes containing 'germ'.}
-
-\item{germ.alt_exists}{Required by modes containing 'germ'.}
-
-\item{germ.ref_loss}{Required by modes containing 'germ'.}
-
-\item{som.max_score}{Required by modes containing 'som'.}
-
-\item{som.alt_exists}{Required by modes containing 'som'.}
+\item{ignore.additional.evidence}{If TRUE, will only consider the base "5+5" score}
 }
 \value{
 The hit_score as a float

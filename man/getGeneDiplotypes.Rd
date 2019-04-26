@@ -7,7 +7,7 @@
 getGeneDiplotypes(df, mode, simplify.snpeff.eff = T)
 }
 \arguments{
-\item{df}{A dataframe containing ensembl_gene_id and the desired column for subsetting}
+\item{df}{A dataframe containing ensembl_gene_id}
 
 \item{mode}{Can be: 'cnv_germ', 'cnv_som', 'germ_som'.}
 

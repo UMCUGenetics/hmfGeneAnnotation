@@ -5,7 +5,7 @@
 \title{Determine gene biallelic status}
 \usage{
 detGeneStatuses(out.dir, cnv.path, germ.path, som.path, purity.path,
-  genes.bed.path, init.path = NULL)
+  genes.bed.path, init.path)
 }
 \arguments{
 \item{out.dir}{Directory to write output}
