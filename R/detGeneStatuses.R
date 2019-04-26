@@ -26,10 +26,12 @@ detGeneStatuses <- function(
    
    ## Testing
    # sample_name='CPCT02070023R_CPCT02070023TII'
+   # sample_name='CPCT02040280R_CPCT02040280T'
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_update/vcf_subset/',sample_name)
+   # out.dir=paste0(in_dir,'/gene_statuses/')
    # init.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_init.R'
 
-   # sample_name='P10_A2988N_A228pT'
+   # sample_name='P10_A2988_A228p'
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/vcf_subset/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
    # init.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/scripts/annotate_genes/detGeneStatuses_init.R'
@@ -72,145 +74,108 @@ detGeneStatuses <- function(
    if(!dir.exists(out.dir)){ dir.create(out.dir) }
    
    #========= Add preliminary annotations =========#
-   mut_profile <- list()
-   
-   if(OPTIONS$verbose){ message('\n## Making CNV mutation profile...') }
-   mut_profile$cnv <- mkMutProfileCnv(
-      input$cnv,
-      rm.non.selected.genes=T,
-      genes.bed=genes_bed,
-      verbose=OPTIONS$verbose
+   mut_profile_paths <- list(
+      cnv=paste0(out.dir,'/mut_profile_cnv.txt.gz'),
+      germ=paste0(out.dir,'/mut_profile_germ.txt.gz'),
+      som=paste0(out.dir,'/mut_profile_som.txt.gz')
    )
    
-   if(OPTIONS$verbose){ message('\n## Making germline mutation profile...') }
-   mut_profile$germ <- mkMutProfileSnvIndel(
-      input$germ,
-      gene.identifier=OPTIONS$gene.identifier,
-      ignore.additional.evidence=OPTIONS$ignore.additional.evidence,
-      tumor.purity=input$purity,
-      mode='germline',
-      rm.non.selected.genes=T,
-      genes.bed=genes_bed
-   )
+   if(OPTIONS$overwrite.mut.profile==F & all(sapply(mut_profile_paths,file.exists))){
+      mut_profile <- lapply(mut_profile_paths,read.delim)
    
-   if(OPTIONS$verbose){ message('\n## Making somatic mutation profile...') }
-   mut_profile$som <- mkMutProfileSnvIndel(
-      input$som,
-      gene.identifier=OPTIONS$gene.identifier,
-      ignore.additional.evidence=OPTIONS$ignore.additional.evidence,
-      tumor.purity=input$purity,
-      mode='somatic',
-      rm.non.selected.genes=T,
-      genes.bed=genes_bed
-   )
+   } else {
+      mut_profile <- list()
+      
+      if(OPTIONS$verbose){ message('\n## Making mutation profile...') }
+      if(OPTIONS$verbose){ message('  cnv...') }
+      mut_profile$cnv <- mkMutProfileCnv(
+         input$cnv,
+         rm.non.selected.genes=T,
+         genes.bed=genes_bed,
+         verbose=OPTIONS$verbose
+      )
+      
+      if(OPTIONS$verbose){ message('  germ...') }
+      mut_profile$germ <- mkMutProfileSnvIndel(
+         input$germ,
+         gene.identifier=OPTIONS$gene.identifier,
+         ignore.additional.evidence=OPTIONS$ignore.additional.evidence,
+         tumor.purity=input$purity,
+         mode='germline',
+         rm.non.selected.genes=T,
+         genes.bed=genes_bed
+      )
+      
+      if(OPTIONS$verbose){ message('  som...') }
+      mut_profile$som <- mkMutProfileSnvIndel(
+         input$som,
+         gene.identifier=OPTIONS$gene.identifier,
+         ignore.additional.evidence=OPTIONS$ignore.additional.evidence,
+         tumor.purity=input$purity,
+         mode='somatic',
+         rm.non.selected.genes=T,
+         genes.bed=genes_bed
+      )
+      
+      if(OPTIONS$verbose){ message('Exporting mutation profiles...') }
+      for(i in names(mut_profile)){
+         write.table(
+            mut_profile[[i]],
+            #gzfile(paste0(out.dir,'/mut_profile_',i,'.txt.gz')),
+            gzfile(mut_profile_paths[[i]]),
+            sep='\t', quote=F, row.names=F
+         )
+      }
+   }
    
    #========= Calculate hit scores =========#
-   if(OPTIONS$verbose){ message('\n## Making pairwise joins of cnv, germ, and som tables...') }
-   biall_mut_profile <- mkBialleleMutProfile(mut_profile)
+   biall_mut_profile_paths <- list(
+      cnv_germ=paste0(out.dir,'/biall_mut_profile_cnv_germ.txt.gz'),
+      cnv_som=paste0(out.dir,'/biall_mut_profile_cnv_som.txt.gz'),
+      germ_som=paste0(out.dir,'/biall_mut_profile_germ_som.txt.gz')
+   )
    
-   if(OPTIONS$verbose){ message('\n## Determining hit_scores...') }
-
-   if(OPTIONS$verbose){ message('  cnv + germ...') }
-   biall_mut_profile$cnv_germ <- (function(){
-      df <- biall_mut_profile$cnv_germ
-
-      hit_scores <- do.call(rbind, Map(
-         calcHitScore, mode='cnv_germ',
-
-         full_gene_loss = df$full_gene_loss,
-         loh = df$loh,
-
-         germ.max_score = df$max_score,
-         germ.alt_exists = df$alt_exists,
-         germ.ref_loss = df$ref_loss,
-
-         cn_break_in_gene = df$cn_break_in_gene,
-
-         min.hit.score.filter = CUTOFFS$min.hit.score,
-
-         USE.NAMES=F
-      ))
-
-      cbind(df, hit_scores)
-   })()
-
-   if(OPTIONS$verbose){ message('  cnv + som...') }
-   biall_mut_profile$cnv_som <- (function(){
-      df <- biall_mut_profile$cnv_som
-
-      hit_scores <- do.call(rbind, Map(
-         calcHitScore, mode='cnv_som',
-
-         full_gene_loss = df$full_gene_loss,
-         loh = df$loh,
-
-         som.max_score = df$max_score,
-         som.alt_exists = df$alt_exists,
-         som.ref_loss = df$ref_loss,
-
-         cn_break_in_gene = df$cn_break_in_gene,
-
-         min.hit.score.filter = CUTOFFS$min.hit.score,
-
-         USE.NAMES=F
-      ))
-
-      cbind(df, hit_scores)
-   })()
-
-   if(OPTIONS$verbose){ message('  germ + som...') }
-   biall_mut_profile$germ_som <- (function(){
-      df <- biall_mut_profile$germ_som
-
-      hit_scores <- do.call(rbind, Map(
-         calcHitScore, mode='germ_som',
-
-         germ.max_score = df$germ.max_score,
-         som.max_score = df$som.max_score,
-
-         germ.alt_exists = df$germ.alt_exists,
-         som.alt_exists = df$som.alt_exists,
-
-         germ.ref_loss = df$germ.ref_loss,
-         som.ref_loss = df$som.ref_loss,
-         cn_break_in_gene = df$cn_break_in_gene,
-
-         min.hit.score.filter = CUTOFFS$min.hit.score,
-
-         USE.NAMES=F
-      ))
-
-      cbind(df, hit_scores)
-   })()
-
-   if(OPTIONS$verbose){ message('  Exporting tables...') }
-   for(i in names(biall_mut_profile)){
-      write.table(
-         biall_mut_profile[[i]],
-         gzfile(paste0(out.dir,'/biall_mut_profile_',i,'.txt.gz')),
-         sep='\t', quote=F, row.names=F
-      )
+   biall_types <- c('cnv_som','cnv_germ','germ_som')
+   if(OPTIONS$overwrite.biall.mut.profile==F & all(sapply(biall_mut_profile_paths,file.exists))){
+      biall_mut_profile <- lapply(biall_mut_profile_paths,read.delim)
+      names(biall_mut_profile) <- biall_types
+   
+   } else {
+      if(OPTIONS$verbose){ message('\n## Making pairwise joins of cnv, germ, and som tables...') }
+      biall_mut_profile <- mkBialleleMutProfile(mut_profile)
+      
+      if(OPTIONS$verbose){ message('\n## Determining hit_scores...') }
+      biall_mut_profile <- lapply(biall_types, function(i){
+         if(OPTIONS$verbose){ message(sprintf('  %s...', sub('_',' + ',i))) }
+         calcHitScore(
+            biall_mut_profile[[i]], mode=i,
+            min.hit.score.filter=CUTOFFS$min.hit.score,
+            ignore.additional.evidence=OPTIONS$ignore.additional.evidence
+         )
+      })
+      names(biall_mut_profile) <- biall_types
+      
+      if(OPTIONS$verbose){ message('  Exporting tables...') }
+      for(i in names(biall_mut_profile)){
+         write.table(
+            biall_mut_profile[[i]],
+            gzfile(biall_mut_profile_paths[[i]]),
+            sep='\t', quote=F, row.names=F
+         )
+      }
    }
-   #subset(biall_mut_profile$cnv_germ, loh==5)
-
-   # if(OPTIONS$verbose){ message('Exporting mutation profile...') }
-   # write.tsv <- function(...){ write.table(..., sep='\t',quote=F,row.names=F) }
-   # write.tsv(mut_profile$cnv, gzfile(mut_profile_paths$cnv))
-   # write.tsv(mut_profile$germ, gzfile(mut_profile_paths$germ))
-   # write.tsv(mut_profile$som, gzfile(mut_profile_paths$som))
-
+   
    #========= Gene diplotypes =========#
    if(OPTIONS$verbose){ message('\n## Determining gene diplotypes...') }
-
+   
    ## Placing cnv_som before cnv_germ prioritizes loh+som events being displayed after overall
    ## getGeneMaxEff step
-   gene_diplotypes <- do.call(rbind, lapply(c('cnv_som','cnv_germ','germ_som'), function(i){
+   gene_diplotypes <- do.call(rbind, lapply(biall_types, function(i){
       if(OPTIONS$verbose){
          message(sprintf('  %s...',sub('_',' + ',i)))
       }
       getGeneDiplotypes(biall_mut_profile[[i]], i, simplify.snpeff.eff=T)
    }))
-   #names(gene_diplotypes) <- c('cnv_som','cnv_germ','germ_som')
 
    if(OPTIONS$verbose){ message('\n## Determining most pathogenic diplotype per gene...') }
    gene_diplotypes_max <- (function(){
