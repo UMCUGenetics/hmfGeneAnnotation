@@ -24,9 +24,13 @@ detGeneStatuses <- function(
    #========= Inputs =========#
    options(stringsAsFactors=F)
    
-   ## Testing
+   # # Testing
    # sample_name='CPCT02070023R_CPCT02070023TII'
    # sample_name='CPCT02040280R_CPCT02040280T'
+   # sample_name='CPCT02020493R_CPCT02020493T'
+   # sample_name='CPCT02010399R_CPCT02010399T'
+   # sample_name='CPCT02010352R_CPCT02010352T'
+   # sample_name='CPCT02070055R_CPCT02070055T'
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_update/vcf_subset/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
    # init.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_init.R'
@@ -35,7 +39,12 @@ detGeneStatuses <- function(
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/vcf_subset/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
    # init.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/scripts/annotate_genes/detGeneStatuses_init.R'
-   # 
+   
+   # sample_name='PD11394'
+   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/BRCA_EU/vcf_subset/',sample_name)
+   # out.dir=paste0(in_dir,'/gene_statuses/')
+   # init.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/BRCA_EU/scripts/annotate_genes/detGeneStatuses_init.R'
+   
    # input_paths <- list(
    #    cnv = paste0(in_dir,'/',sample_name,'.purple.gene.cnv'),
    #    germ = paste0(in_dir,'/varsig/',sample_name,'_varsigs_germ.txt.gz'),
@@ -136,6 +145,7 @@ detGeneStatuses <- function(
    )
    
    biall_types <- c('cnv_som','cnv_germ','germ_som')
+   
    if(OPTIONS$overwrite.biall.mut.profile==F & all(sapply(biall_mut_profile_paths,file.exists))){
       biall_mut_profile <- lapply(biall_mut_profile_paths,read.delim)
       names(biall_mut_profile) <- biall_types

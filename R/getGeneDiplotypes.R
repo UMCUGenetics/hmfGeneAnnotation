@@ -10,21 +10,37 @@
 getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
    
    #df=biall_mut_profile$cnv_som
+   #df=biall_mut_profile$germ_som
    
    SEL_COLS <- list(
-      common=c(
-         'ensembl_gene_id','hgnc_symbol',
-         'hit_score','hit_score_boosted',
-         'hit_type','def_type','is_def',
-         'cn_break_in_gene'
+      common = list(
+         ensembl_gene_id='none', 
+         hgnc_symbol='none',
+         hit_score=0.0,
+         hit_score_boosted=0,
+         hit_type='none',
+         def_type='none',
+         is_def=0,
+         cn_break_in_gene=0
       ),
-      allele=c(
-         'chrom','pos','hgvs_c',
-         #'ExAC_AC','ExAC_AF','gnomad_filter','gnomad_af',
-         'adj_tumor_ad_ref','adj_tumor_ad_alt','alt_exists','ad_diff_score','ref_loss',
-         'max_score','max_score_origin'
+      
+      allele = list(
+         chrom=0,
+         pos=0,
+         hgvs_c='none',
+         
+         max_score=0,
+         max_score_origin='none',
+         
+         is_hotspot_mut=0,
+         adj_tumor_ad_ref=0,
+         adj_tumor_ad_alt=0,
+         alt_exists=0,
+         ad_diff_score=0,
+         ref_loss=0
       )
    )
+   SEL_COLS_uniq <- unlist(unname(SEL_COLS), recursive=F)
 
    modes <- c('cnv_germ','cnv_som','germ_som')
    if(!(mode %in% modes)){
@@ -33,7 +49,7 @@ getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
 
    simplifySnpeffEff <- function(v){
       v_new <- SNPEFF_SIMPLE_ANN_LOOKUP[match(v, SNPEFF_SIMPLE_ANN_LOOKUP$ann), 'ann_s2']
-      v_new[is.na(v_new)] <- 0
+      v_new[is.na(v_new)] <- 'none'
       return(v_new)
    }
 
@@ -62,10 +78,11 @@ getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
          ))
       }, df$full_gene_loss, df$loh, df$snpeff_eff)))
       colnames(diplotypes) <- c('a1','a2','a1.origin','a2.origin')
-
+      
+      #--------- Allele 1 ---------#
       ## Initiate empty dataframe with same nrows as input df
       out_a1 <- (function(){
-         col_names <- c(paste0('a1.', SEL_COLS$allele))
+         col_names <- c(paste0('a1.', names(SEL_COLS$allele)))
 
          out_a1 <- data.frame(matrix(nrow=nrow(df),ncol=length(col_names)))
          colnames(out_a1) <- col_names
@@ -79,9 +96,10 @@ getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
       out_a1$a1.chrom <- df$chrom
       
       ## Assign score for loh/full_gene_loss
-      out_a1$a1.max_score <- unlist(lapply(out_a1$a1, function(i){ ifelse(i!='none',5,0) }))
+      out_a1$a1.max_score <- ifelse(out_a1$a1 %in% c('full_gene_loss','loh'),5,0)
 
-      out_a2 <- df[,SEL_COLS$allele]
+      #--------- Allele 2 ---------#
+      out_a2 <- df[,names(SEL_COLS$allele)]
       colnames(out_a2) <- paste0('a2.',colnames(out_a2))
       
       out_a2 <- cbind(out_a2, diplotypes[,c('a2','a2.origin')])
@@ -92,20 +110,21 @@ getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
          } else {
             diplotypes$a2
          }
-
-      out <- cbind(df[,SEL_COLS$common], diplotype_origin = mode, out_a1, out_a2)
+      
+      ## Export
+      out <- cbind(df[,names(SEL_COLS$common)], diplotype_origin = mode, out_a1, out_a2)
    }
 
    if(mode=='germ_som'){
       out <- cbind(
-         df[,SEL_COLS$common],
+         df[,names(SEL_COLS$common)],
          diplotype_origin = mode,
          
-         df[,paste0('germ.',SEL_COLS$allele)],
+         df[,paste0('germ.',names(SEL_COLS$allele))],
          a1=df$germ.snpeff_eff,
          a1.origin='germ',
          
-         df[,paste0('som.',SEL_COLS$allele)],
+         df[,paste0('som.',names(SEL_COLS$allele))],
          a2=df$som.snpeff_eff,
          a2.origin='som'
       )
@@ -118,51 +137,13 @@ getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
          out$a2 <- simplifySnpeffEff(out$a2)
       }
    }
+   
+   ## Fill in NAs
+   root_colnames <- gsub('a1[.]|a2[.]','',colnames(out))
+   fill_cols <- which(root_colnames %in% names(SEL_COLS_uniq))
+   for(i in fill_cols){
+      out[,i][ is.na(out[,i]) ] <- SEL_COLS_uniq[[root_colnames[i]]]
+   }
 
    return(out)
 }
-
-# getVarPairDiplotype <- function(
-#    mode,
-#    full_gene_loss=NA, loh=NA,
-#    a1.snpeff_eff=NA, a1.max_score=NA,
-#    a2.snpeff_eff=NA, a2.max_score=NA
-# ){
-#    modes <- c('cnv_germ','cnv_som','germ_som')
-#    if(!(mode %in% modes)){
-#       stop(paste0("Please specify a valid mode: 'cnv_germ', 'cnv_som', 'germ_som'"))
-#    }
-#
-#    if(mode=='cnv_germ' | mode=='cnv_som'){
-#       if(anyNA(c(full_gene_loss, loh, a2.max_score, a2.snpeff_eff))){
-#          stop("For modes 'cnv_germ' or 'cnv_som', the required args are: full_gene_loss, loh, a2.max_score, a2.snpeff_eff")
-#       }
-#       if(full_gene_loss==SCORING$full_gene_loss){
-#          a1 <- a2 <- 'full_gene_loss'
-#       } else if(loh==SCORING$loh) {
-#          a1 <- 'loh'
-#          a2 <- a2.snpeff_eff
-#       } else {
-#          a1 <- 'none'
-#          a2 <- a2.snpeff_eff
-#       }
-#    }
-#
-#    if(mode=='germ_som'){
-#       if(anyNA(c(a1.snpeff_eff, a2.snpeff_eff, a1.max_score, a2.max_score))){
-#          stop("For modes 'cnv_germ' or 'cnv_som', the required args are: a1.max_score, a2.max_score, a1.snpeff_eff, a2.snpeff_eff")
-#       }
-#       # max_scores <- c(a1.max_score, a2.max_score)
-#       # snp_effs <- c(a1.snpeff_eff, a2.snpeff_eff)
-#       #
-#       # a1 <- snp_effs[which.max(max_scores)]
-#       # a2 <- snp_effs[which.min(max_scores)]
-#
-#       a1 <- a1.snpeff_eff
-#       a2 <- a2.snpeff_eff
-#    }
-#
-#    return(data.frame(
-#       a1, a2, a1.max_score, a2.max_score
-#    ))
-# }

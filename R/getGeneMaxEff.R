@@ -13,16 +13,18 @@ getGeneMaxEff <- function(df, colname='max_score', greedy.max.eff=T, show.n.max=
    if(nrow(df) == 0){
       stop(return(NA))
    }
-
-   gene_ids <- unique(df$ensembl_gene_id)
+   
+   gene_id_col <- OPTIONS$gene.identifier
+   gene_ids <- unique(df[,gene_id_col])
+   
    do.call(rbind, lapply(gene_ids, function(i){
-      #i="BRE"
+      #i="MAD1L1"
+      #i="ENSG00000002822"
 
-      df_ss <- df[ df$ensembl_gene_id == i,]
+      df_ss <- df[ df[,gene_id_col] == i,]
 
       max_max_score <- max(df_ss[,colname])
       df_ss <- df_ss[df_ss[,colname] == max_max_score, ]
-
 
       if(greedy.max.eff){
          out <- df_ss[1,]
