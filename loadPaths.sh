@@ -14,6 +14,7 @@ CADD_DB_SNV=/hpc/cog_bioinf/common_dbs/CADD/whole_genome_SNVs_inclAnno.tsv.gz
 SCAP_DB=$ROOT_DIR/data/variant_significance/SCAP/scap_v1_0.sorted.txt.gz
 MCAP_DB=$ROOT_DIR/data/variant_significance/MCAP/mcap_v1_3.txt.gz
 GNOMAD_DB_DIR=/hpc/cog_bioinf/common_dbs/GNOMAD/v2.1/
+HOTSPOTS_DB=$ROOT_DIR/data/variant_significance/HMF_hotspots/KnownHotspots.tsv.gz
 
 #========= Scripts =========#
 ## subset databases
@@ -32,6 +33,7 @@ getAnnotations_dir=$ROOT_DIR/scripts/getAnnotations
 
 addSigAnn_sh=$getAnnotations_dir/addSigAnn.sh
 getClinSig_sh=$getAnnotations_dir/getClinSig.sh
+detIsHotspotMut_sh=$getAnnotations_dir/detIsHotspotMut.sh
 getCaddAnn_py=$getAnnotations_dir/getCaddAnn.py
 getCapAnn_py=$getAnnotations_dir/getCapAnn.py
 getGnomadAnn_py=$getAnnotations_dir/getGnomadAnn.py

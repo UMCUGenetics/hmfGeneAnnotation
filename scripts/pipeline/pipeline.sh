@@ -150,14 +150,14 @@ EOF
 	
 	clinsig_som_txt=$out_dir/varsig/clinsig_som.txt.gz
 	clinsig_germ_txt=$out_dir/varsig/clinsig_germ.txt.gz
-	if [[ $skip_to_step -le 4 ]]; then
-		echo -e "\n#========= ClinVar/ENIGMA annotation =========#"
-		execJob -i $som_txt_ss -o $clinsig_som_txt -p gvsS -w xvfS_${sample_name}.job \
-		-c "source $ROOT_DIR/loadPaths.sh; source $getClinSig_sh; getClinSig @INPUT @OUTPUT"
+	# if [[ $skip_to_step -le 4 ]]; then
+	# 	echo -e "\n#========= ClinVar/ENIGMA annotation =========#"
+	# 	execJob -i $som_txt_ss -o $clinsig_som_txt -p gvsS -w xvfS_${sample_name}.job \
+	# 	-c "source $ROOT_DIR/loadPaths.sh; source $getClinSig_sh; getClinSig @INPUT @OUTPUT"
 		
-		execJob -i $germ_txt_ss -o $clinsig_germ_txt -p gvsG -w xvfG_${sample_name}.job \
-		-c "source $ROOT_DIR/loadPaths.sh; source $getClinSig_sh; getClinSig @INPUT @OUTPUT"
-	fi
+	# 	execJob -i $germ_txt_ss -o $clinsig_germ_txt -p gvsG -w xvfG_${sample_name}.job \
+	# 	-c "source $ROOT_DIR/loadPaths.sh; source $getClinSig_sh; getClinSig @INPUT @OUTPUT"
+	# fi
 
 
 	cadd_som_txt=$out_dir/varsig/cadd_som.txt.gz
@@ -184,29 +184,39 @@ EOF
 
 	gnomad_som_txt=$out_dir/varsig/gnomad_som.txt.gz
 	gnomad_germ_txt=$out_dir/varsig/gnomad_germ.txt.gz
-	if [[ $skip_to_step -le 7 ]]; then
-		echo -e "\n#========= GNOMAD annotation =========#"
-		execJob -i $som_txt_ss -o $gnomad_som_txt -p gGNOMADaS -w xvfS_${sample_name}.job -t 2:00:00 \
-		-c "$getGnomadAnn_py -i @INPUT -o @OUTPUT"
+	# if [[ $skip_to_step -le 7 ]]; then
+	# 	echo -e "\n#========= GNOMAD annotation =========#"
+	# 	execJob -i $som_txt_ss -o $gnomad_som_txt -p gGNOMADaS -w xvfS_${sample_name}.job -t 2:00:00 \
+	# 	-c "$getGnomadAnn_py -i @INPUT -o @OUTPUT"
 
-		execJob -i $germ_txt_ss -o $gnomad_germ_txt -p gGNOMADaG -w xvfG_${sample_name}.job -t 5:00:00 \
-		-c "$getGnomadAnn_py -i @INPUT -o @OUTPUT"
-	fi
+	# 	execJob -i $germ_txt_ss -o $gnomad_germ_txt -p gGNOMADaG -w xvfG_${sample_name}.job -t 5:00:00 \
+	# 	-c "$getGnomadAnn_py -i @INPUT -o @OUTPUT"
+	# fi
+
+	hotspots_som_txt=$out_dir/varsig/hotspots_som.txt.gz
+	hotspots_germ_txt=$out_dir/varsig/hotspots_germ.txt.gz
+	# if [[ $skip_to_step -le 8 ]]; then
+	# 	echo -e "\n#========= Hotspot annotation =========#"
+	# 	execJob -i $som_txt_ss -o $hotspots_som_txt -p ghS -w xvfS_${sample_name}.job -t 2:00:00 \
+	# 	-c "source $ROOT_DIR/loadPaths.sh; source $detIsHotspotMut_sh; detIsHotspotMut @INPUT @OUTPUT"
+
+	# 	execJob -i $germ_txt_ss -o $hotspots_germ_txt -p ghG -w xvfG_${sample_name}.job -t 5:00:00 \
+	# 	-c "source $ROOT_DIR/loadPaths.sh; source $detIsHotspotMut_sh; detIsHotspotMut @INPUT @OUTPUT"
 
 
 	som_varsig_txt=$varsig_dir/${sample_name}_varsigs_som.txt.gz
 	germ_varsig_txt=$varsig_dir/${sample_name}_varsigs_germ.txt.gz
-	if [[ $skip_to_step -le 8 ]]; then
+	if [[ $skip_to_step -le 9 ]]; then
 		echo -e "\n#=========Merge variant significance with variant txt =========#"
 		execJob -o $som_varsig_txt -p mvsS -w "gvsS_${sample_name}.job" -c \
-		"paste <(zcat $som_txt_ss) <(zcat $clinsig_som_txt) <(zcat $gnomad_som_txt) | gzip -c > $som_varsig_txt"
+		"paste <(zcat $som_txt_ss) <(zcat $clinsig_som_txt) <(zcat $hotspots_som_txt) | gzip -c > $som_varsig_txt"
 
 		execJob -o $germ_varsig_txt -p mvsG -w "gvsG_${sample_name}.job" -c \
-		"paste <(zcat $germ_txt_ss) <(zcat $clinsig_germ_txt) <(zcat $gnomad_germ_txt) | gzip -c > $germ_varsig_txt"
+		"paste <(zcat $germ_txt_ss) <(zcat $clinsig_germ_txt) <(zcat $hotspots_germ_txt) | gzip -c > $germ_varsig_txt"
 	fi
 
 	
-	if [[ $skip_to_step -le 9 ]]; then
+	if [[ $skip_to_step -le 10 ]]; then
 		echo -e "\n#========= Determine gene statuses =========#"
 		gene_statuses_dir=$out_dir/gene_statuses/; mkdir -p $gene_statuses_dir
 		execJob -p dgs -m 8G \

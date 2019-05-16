@@ -48,13 +48,16 @@ SCORING <- list(
    score_boost.loh_germ=100,
 
    ## Additional evidence
-   cn_break_in_gene=0.1,
+   germ.is_hotspot_mut=0.1,
+   som.is_hotspot_mut=0.1,
    
-   germ.ref_loss=0.1, ## Check if adjusted REF AD is high --> no ref loss
-   som.ref_loss=0.1,
+   cn_break_in_gene=0.01,
    
-   germ.alt_exists=0.01, ## Give bonus points when ALT AD is good
-   som.alt_exists=0.01
+   germ.ref_loss=0.01, ## Check if adjusted REF AD is high --> no ref loss
+   som.ref_loss=0.01,
+   
+   germ.alt_exists=0.001, ## Give bonus points when ALT AD is good
+   som.alt_exists=0.001
 )
 
 SNPEFF_SIMPLE_ANN_LOOKUP <- read.delim(paste0(SCORING_TABLES_DIR,'/snpeff/snpeff_scoring.txt'))[c('ann','ann_s2')]
@@ -63,16 +66,18 @@ IS_DEF_MIN_HIT_SCORE <- c(
    'full_gene_loss' = SCORING$full_gene_loss,
 
    'loh+som' = SCORING$loh + 5 + 
+      SCORING$som.is_hotspot_mut +
       SCORING$som.alt_exists +
       min(SCORING$som.ref_loss, SCORING$cn_break_in_gene),
 
    'loh+germ' = SCORING$loh + 5 +
+      SCORING$germ.is_hotspot_mut +
       SCORING$germ.alt_exists + 
       min(SCORING$germ.ref_loss, SCORING$cn_break_in_gene),
 
    'germ+som' = 5 + 5 +
-      SCORING$germ.alt_exists + min(SCORING$germ.ref_loss, SCORING$cn_break_in_gene) +
-      SCORING$som.alt_exists + min(SCORING$som.ref_loss, SCORING$cn_break_in_gene)
+      SCORING$germ.is_hotspot_mut + SCORING$germ.alt_exists + min(SCORING$germ.ref_loss, SCORING$cn_break_in_gene) +
+      SCORING$som.is_hotspot_mut + SCORING$som.alt_exists + min(SCORING$som.ref_loss, SCORING$cn_break_in_gene)
 )
 
 #--------- Cutoffs ---------#
