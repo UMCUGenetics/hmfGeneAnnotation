@@ -19,6 +19,7 @@ OPTIONS <- list(
    keep.only.first.eff=T,
    gene.identifier='ensembl_gene_id',
    ignore.additional.evidence=T,
+   simplify.snpeff.eff=F,
    verbose=T
 )
 
