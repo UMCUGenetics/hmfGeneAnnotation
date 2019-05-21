@@ -15,6 +15,6 @@ detGeneStatuses(
    som.path = args[4],
    purity.path = args[5],
    genes.bed.path = args[6],
-   init.path = if(!is.null(args[7])){ args[7] } else { ini_path_default }
+   ini.path = if(!is.null(args[7])){ args[7] } else { ini_path_default }
 )
 
