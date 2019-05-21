@@ -83,4 +83,4 @@ if __name__ == "__main__":
 
 	args = parser.parse_args()
 
-	getClinSig(args.in_txt_path, args.out_txt_path)
+	detIsHotspotMut(args.in_txt_path, args.out_txt_path)
