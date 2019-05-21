@@ -59,7 +59,8 @@ getGeneDiplotypes <- function(df, mode, simplify.snpeff.eff=T){
       diplotypes <- as.data.frame(do.call(rbind, Map(function(full_gene_loss, loh, snpeff_eff){
          
          if(full_gene_loss==SCORING$full_gene_loss){
-            a1 <- a2 <- 'full_gene_loss'
+            a1 <- 'full_gene_loss'
+            a2 <- 'full_gene_loss'
             a1.origin <- a2.origin <- 'cnv'
          } else if(loh==SCORING$loh) {
             a1 <- 'loh'
