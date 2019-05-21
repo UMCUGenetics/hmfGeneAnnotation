@@ -92,8 +92,8 @@ def getClinSig(in_txt_path, out_txt_path):
 			# 			break
 
 			#print clinvar_sig
-			#out_txt.writelines(clinvar_sig+'\t'+enigma_sig+'\t'+'\n')
-			out_txt.writelines(chrom +'\t'+ pos +'\t'+ ref +'\t'+alt +'\t'+ clinvar_sig+'\t'+enigma_sig+'\t'+'\n')
+			out_txt.writelines(clinvar_sig+'\t'+enigma_sig+'\n')
+			#out_txt.writelines(chrom +'\t'+ pos +'\t'+ ref +'\t'+alt +'\t'+ clinvar_sig+'\t'+enigma_sig+'\t'+'\n')
 
 # in_txt_path='/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_update/vcf_subset/CPCT02050135R_CPCT02050135T/CPCT02050135R_CPCT02050135T.som.txt.gz'
 # out_txt_path='/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/getAnnotations/test.txt.gz'
