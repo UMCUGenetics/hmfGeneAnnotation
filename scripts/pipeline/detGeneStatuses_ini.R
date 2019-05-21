@@ -18,7 +18,7 @@ OPTIONS <- list(
    overwrite.biall.mut.profile=T,
    keep.only.first.eff=T,
    gene.identifier='ensembl_gene_id',
-   ignore.additional.evidence=F,
+   ignore.additional.evidence=T,
    verbose=T
 )
 
