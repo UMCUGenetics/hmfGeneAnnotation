@@ -6,7 +6,7 @@
 #' @param som.path Somatic variant table
 #' @param purity.path Purple purity table
 #' @param genes.bed.path Bed file of gene selection
-#' @param init.path An R script that provides the settings for this detGeneStatuses.
+#' @param ini.path An R script that provides the settings for this detGeneStatuses.
 #'
 #' @return Write the tables biall_mut_profile_*, gene_diplotypes, and gene_diplotypes_max to out.dir
 #' @export
@@ -18,7 +18,7 @@ detGeneStatuses <- function(
    som.path, 
    purity.path, 
    genes.bed.path, 
-   init.path
+   ini.path
 ){
    
    #========= Inputs =========#
@@ -33,17 +33,17 @@ detGeneStatuses <- function(
    # sample_name='CPCT02070055R_CPCT02070055T'
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_update/vcf_subset/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
-   # init.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_init.R'
+   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_init.R'
 
    # sample_name='P10_A2988_A228p'
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/vcf_subset/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
-   # init.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/scripts/annotate_genes/detGeneStatuses_init.R'
+   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/scripts/annotate_genes/detGeneStatuses_init.R'
    
    # sample_name='PD11394'
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/BRCA_EU/vcf_subset/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
-   # init.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/BRCA_EU/scripts/annotate_genes/detGeneStatuses_init.R'
+   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/BRCA_EU/scripts/annotate_genes/detGeneStatuses_init.R'
    
    # input_paths <- list(
    #    cnv = paste0(in_dir,'/',sample_name,'.purple.gene.cnv'),
@@ -65,9 +65,9 @@ detGeneStatuses <- function(
    # print(germ.path)
    # print(som.path)
    # print(genes.bed.path)
-   # print(init.path)
+   # print(ini.path)
    
-   source(init.path)
+   source(ini.path)
    
    input <- list(
       cnv = read.delim(cnv.path),
