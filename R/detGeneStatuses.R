@@ -30,21 +30,18 @@ detGeneStatuses <- function(
    # sample_name='CPCT02020493R_CPCT02020493T'
    # sample_name='CPCT02010399R_CPCT02010399T'
    # sample_name='CPCT02010352R_CPCT02010352T'
-   # sample_name='CPCT02070055R_CPCT02070055T'
+   # sample_name='CPCT02070055R_CPCT02070055T' ## BRCA2 full gene loss
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_update/vcf_subset/',sample_name)
+   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_DR010_DR047/vcf_subset/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
-   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_init.R'
+   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_ini.R'
+   
+   # sample_name='CPCT02070055T' ## BRCA2 full gene loss
+   # sample_name='CPCT02190024T' ## error
+   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_DR010_DR047/vcf_subset/',sample_name)
+   # out.dir=paste0(in_dir,'/gene_statuses/')
+   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_ini.R'
 
-   # sample_name='P10_A2988_A228p'
-   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/vcf_subset/',sample_name)
-   # out.dir=paste0(in_dir,'/gene_statuses/')
-   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/scripts/annotate_genes/detGeneStatuses_init.R'
-   
-   # sample_name='PD11394'
-   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/BRCA_EU/vcf_subset/',sample_name)
-   # out.dir=paste0(in_dir,'/gene_statuses/')
-   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/BRCA_EU/scripts/annotate_genes/detGeneStatuses_init.R'
-   
    # input_paths <- list(
    #    cnv = paste0(in_dir,'/',sample_name,'.purple.gene.cnv'),
    #    germ = paste0(in_dir,'/varsig/',sample_name,'_varsigs_germ.txt.gz'),
@@ -184,7 +181,7 @@ detGeneStatuses <- function(
       if(OPTIONS$verbose){
          message(sprintf('  %s...',sub('_',' + ',i)))
       }
-      getGeneDiplotypes(biall_mut_profile[[i]], i, simplify.snpeff.eff=T)
+      getGeneDiplotypes(biall_mut_profile[[i]], i, simplify.snpeff.eff=OPTIONS$simplify.snpeff.eff)
    }))
 
    if(OPTIONS$verbose){ message('\n## Determining most pathogenic diplotype per gene...') }
