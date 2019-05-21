@@ -1,0 +1,5 @@
+ann	score
+Benign	1
+Likely_benign	2
+Pathogenic	5
+Uncertain_significance	3

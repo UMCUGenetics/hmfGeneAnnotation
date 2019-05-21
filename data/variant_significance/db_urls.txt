@@ -1,0 +1,3 @@
+ENIGMA https://brcaexchange.org/variants
+ClinVar	ftp://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh37/archive_2.0/2018/clinvar_20181217.vcf.gz
+ExAc	ftp://ftp.broadinstitute.org/pub/ExAC_release/release1/ExAC.r1.sites.vep.vcf.gz
