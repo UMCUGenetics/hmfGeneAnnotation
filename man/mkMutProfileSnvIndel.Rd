@@ -4,17 +4,13 @@
 \alias{mkMutProfileSnvIndel}
 \title{Create annotations to the germline/somatic tables originating from HMF germline/somatic vcfs}
 \usage{
-mkMutProfileSnvIndel(df.snv.indel, tumor.purity, mode,
-  ignore.additional.evidence = F, rm.non.selected.genes = T,
-  genes.bed = NULL, gene.identifier = "ensembl_gene_id",
-  keep.only.first.eff = T, verbose = T)
+mkMutProfileSnvIndel(df.snv.indel, mode, scoring = SCORING_MUT,
+  rm.non.selected.genes = T, genes.bed = NULL,
+  gene.identifier = "ensembl_gene_id", keep.only.first.eff = T,
+  verbose = T)
 }
 \arguments{
 \item{df.snv.indel}{A germline/somatic table originating from HMF germline/somatic vcfs}
-
-\item{tumor.purity}{Tumor purity}
-
-\item{mode}{Can be 'germline' or 'somatic'}
 
 \item{rm.non.selected.genes}{Remove genes not specified by the user in genes.bed}
 
