@@ -5,7 +5,7 @@
 \title{Determine gene biallelic status}
 \usage{
 detGeneStatuses(out.dir, cnv.path, germ.path, som.path, purity.path,
-  genes.bed.path, init.path)
+  genes.bed.path, ini.path)
 }
 \arguments{
 \item{out.dir}{Directory to write output}
@@ -20,7 +20,7 @@ detGeneStatuses(out.dir, cnv.path, germ.path, som.path, purity.path,
 
 \item{genes.bed.path}{Bed file of gene selection}
 
-\item{init.path}{An R script that provides the settings for this detGeneStatuses.}
+\item{ini.path}{An R script that provides the settings for this detGeneStatuses.}
 }
 \value{
 Write the tables biall_mut_profile_*, gene_diplotypes, and gene_diplotypes_max to out.dir

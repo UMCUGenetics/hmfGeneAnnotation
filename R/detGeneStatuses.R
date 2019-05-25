@@ -24,23 +24,15 @@ detGeneStatuses <- function(
    #========= Inputs =========#
    options(stringsAsFactors=F)
    
-   # # Testing
-   # sample_name='CPCT02070023R_CPCT02070023TII'
-   # sample_name='CPCT02040280R_CPCT02040280T'
-   # sample_name='CPCT02020493R_CPCT02020493T'
-   # sample_name='CPCT02010399R_CPCT02010399T'
-   # sample_name='CPCT02010352R_CPCT02010352T'
-   # sample_name='CPCT02070055R_CPCT02070055T' ## BRCA2 full gene loss
-   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_update/vcf_subset/',sample_name)
-   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_DR010_DR047/vcf_subset/',sample_name)
-   # out.dir=paste0(in_dir,'/gene_statuses/')
-   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_ini.R'
-   
+   ## Testing
    # sample_name='CPCT02070055T' ## BRCA2 full gene loss
-   # sample_name='CPCT02190024T' ## error
+   # sample_name='CPCT02010419T' ## BRCA2 LOH + stop gained
+   # sample_name='CPCT02010708T' ## BRCA1 LOH + frameshift
+   # sample_name='CPCT02050231T' ## BRCA1 LOH + missense
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_DR010_DR047/vcf_subset/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
    # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_ini.R'
+   # setwd("~/Documents")
 
    # input_paths <- list(
    #    cnv = paste0(in_dir,'/',sample_name,'.purple.gene.cnv'),
@@ -57,13 +49,6 @@ detGeneStatuses <- function(
    # )
    
    ## Real
-   # print(out.dir)
-   # print(cnv.path)
-   # print(germ.path)
-   # print(som.path)
-   # print(genes.bed.path)
-   # print(ini.path)
-   
    source(ini.path)
    
    input <- list(
@@ -93,7 +78,7 @@ detGeneStatuses <- function(
       mut_profile <- list()
       
       if(OPTIONS$verbose){ message('\n## Making mutation profile...') }
-      if(OPTIONS$verbose){ message('  cnv...') }
+      if(OPTIONS$verbose){ message('> cnv...') }
       mut_profile$cnv <- mkMutProfileCnv(
          input$cnv,
          rm.non.selected.genes=T,
@@ -101,29 +86,25 @@ detGeneStatuses <- function(
          verbose=OPTIONS$verbose
       )
       
-      if(OPTIONS$verbose){ message('  germ...') }
-      mut_profile$germ <- mkMutProfileSnvIndel(
-         input$germ,
-         gene.identifier=OPTIONS$gene.identifier,
-         ignore.additional.evidence=OPTIONS$ignore.additional.evidence,
-         tumor.purity=input$purity,
-         mode='germline',
-         rm.non.selected.genes=T,
-         genes.bed=genes_bed
-      )
-      
-      if(OPTIONS$verbose){ message('  som...') }
+      if(OPTIONS$verbose){ message('> som...') }
       mut_profile$som <- mkMutProfileSnvIndel(
          input$som,
          gene.identifier=OPTIONS$gene.identifier,
-         ignore.additional.evidence=OPTIONS$ignore.additional.evidence,
-         tumor.purity=input$purity,
-         mode='somatic',
          rm.non.selected.genes=T,
-         genes.bed=genes_bed
+         genes.bed=genes_bed,
+         keep.only.first.eff=OPTIONS$keep.only.first.eff
       )
       
-      if(OPTIONS$verbose){ message('Exporting mutation profiles...') }
+      if(OPTIONS$verbose){ message('> germ...') }
+      mut_profile$germ <- mkMutProfileSnvIndel(
+         input$germ,
+         gene.identifier=OPTIONS$gene.identifier,
+         rm.non.selected.genes=T,
+         genes.bed=genes_bed,
+         keep.only.first.eff=OPTIONS$keep.only.first.eff
+      )
+      
+      if(OPTIONS$verbose){ message('\n## Exporting mutation profiles...') }
       for(i in names(mut_profile)){
          write.table(
             mut_profile[[i]],
@@ -134,74 +115,64 @@ detGeneStatuses <- function(
       }
    }
    
-   #========= Calculate hit scores =========#
-   biall_mut_profile_paths <- list(
-      cnv_germ=paste0(out.dir,'/biall_mut_profile_cnv_germ.txt.gz'),
-      cnv_som=paste0(out.dir,'/biall_mut_profile_cnv_som.txt.gz'),
-      germ_som=paste0(out.dir,'/biall_mut_profile_germ_som.txt.gz')
+   #========= Make gene diplotypes =========#
+   if(OPTIONS$verbose){ message('\n## Making gene diplotypes tables...') }
+   l_gene_diplotypes <- list()
+   
+   if(OPTIONS$verbose){ message('> cnv_som...') }
+   l_gene_diplotypes$cnv_som <- mkGeneDiplotypesCnvMut(
+      mut_profile$cnv, mut_profile$som, 'som',
+      verbose=OPTIONS$verbose
+   ) ## Prioritize somatic mutations
+   
+   if(OPTIONS$verbose){ message('> cnv_germ...') }
+   l_gene_diplotypes$cnv_germ <- mkGeneDiplotypesCnvMut(
+      mut_profile$cnv, mut_profile$germ, 'germ',
+      verbose=OPTIONS$verbose
    )
    
-   biall_types <- c('cnv_som','cnv_germ','germ_som')
-   
-   if(OPTIONS$overwrite.biall.mut.profile==F & all(sapply(biall_mut_profile_paths,file.exists))){
-      biall_mut_profile <- lapply(biall_mut_profile_paths,read.delim)
-      names(biall_mut_profile) <- biall_types
-   
-   } else {
-      if(OPTIONS$verbose){ message('\n## Making pairwise joins of cnv, germ, and som tables...') }
-      biall_mut_profile <- mkBialleleMutProfile(mut_profile)
-      
-      if(OPTIONS$verbose){ message('\n## Determining hit_scores...') }
-      biall_mut_profile <- lapply(biall_types, function(i){
-         if(OPTIONS$verbose){ message(sprintf('  %s...', sub('_',' + ',i))) }
-         calcHitScore(
-            biall_mut_profile[[i]], mode=i,
-            min.hit.score.filter=CUTOFFS$min.hit.score,
-            ignore.additional.evidence=OPTIONS$ignore.additional.evidence
-         )
-      })
-      names(biall_mut_profile) <- biall_types
-      
-      if(OPTIONS$verbose){ message('  Exporting tables...') }
-      for(i in names(biall_mut_profile)){
-         write.table(
-            biall_mut_profile[[i]],
-            gzfile(biall_mut_profile_paths[[i]]),
-            sep='\t', quote=F, row.names=F
-         )
-      }
-   }
-   
-   #========= Gene diplotypes =========#
-   if(OPTIONS$verbose){ message('\n## Determining gene diplotypes...') }
-   
-   ## Placing cnv_som before cnv_germ prioritizes loh+som events being displayed after overall
-   ## getGeneMaxEff step
-   gene_diplotypes <- do.call(rbind, lapply(biall_types, function(i){
-      if(OPTIONS$verbose){
-         message(sprintf('  %s...',sub('_',' + ',i)))
-      }
-      getGeneDiplotypes(biall_mut_profile[[i]], i, simplify.snpeff.eff=OPTIONS$simplify.snpeff.eff)
-   }))
+   if(OPTIONS$verbose){ message('> germ_som...') }
+   l_gene_diplotypes$germ_som <- mkGeneDiplotypesGermSom(
+      mut_profile$germ, mut_profile$som,
+      verbose=OPTIONS$verbose
+   )
 
+   # subset(l_gene_diplotypes$cnv_som, hgnc_symbol %in% c('BRCA1','BRCA2'))
+   # View(subset(l_gene_diplotypes$cnv_germ, hgnc_symbol %in% c('BRCA1','BRCA2')))
+   # lapply(l_gene_diplotypes, function(i){ which(apply(i,1,anyNA)) })
+   
+   #========= Calculate hit scores and determine gene max effect =========#
+   if(OPTIONS$verbose){ message('\n## Merging diplotype origins into one table...') }
+   gene_diplotypes <- do.call(rbind, l_gene_diplotypes)
+   
+   if(OPTIONS$verbose){ message('\n## Calculating hit_scores...') }
+   #gene_diplotypes$hit_score <- calcHitScores(gene_diplotypes)
+   gene_diplotypes <- cbind(
+      gene_diplotypes, 
+      calcHitScores(gene_diplotypes, DIPLOTYPE_ORIGIN_RANK)
+   )
+   
+   #head(gene_diplotypes)
+   
    if(OPTIONS$verbose){ message('\n## Determining most pathogenic diplotype per gene...') }
    gene_diplotypes_max <- (function(){
-      df <- getGeneMaxEff(gene_diplotypes, colname='hit_score_boosted', show.n.max=T)
+      df <- getGeneDiplotypeMaxEff(gene_diplotypes, colname='hit_score')
       df <- df[order(df$hgnc_symbol),]
       #df$hit_score_boosted <- NULL
       return(df)
    })()
-
+   
    # subset(gene_diplotypes_max, hgnc_symbol %in% c('BRCA1','BRCA2'))
+   # subset(gene_diplotypes, hgnc_symbol %in% c('BRCA1','BRCA2'))
    # table(gene_diplotypes_max$a1)
-
+   
    if(OPTIONS$verbose){ message('\n## Exporting gene diplotype tables...') }
    write.table(
       gene_diplotypes,
       gzfile(paste0(out.dir,'/gene_diplotypes.txt.gz')),
       sep='\t', quote=F, row.names=F
    )
-
+   
    write.table(
       gene_diplotypes_max,
       gzfile(paste0(out.dir,'/gene_diplotypes_max.txt.gz')),
