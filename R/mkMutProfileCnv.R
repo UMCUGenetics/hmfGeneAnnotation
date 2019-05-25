@@ -48,8 +48,8 @@ mkMutProfileCnv <- function(
    
    if(verbose){ message('Determining the presence of CNV events...') }
    out <- within(out,{
-      full_gene_loss[ min_copy_number <= full.gene.loss.max.max.copy.number ] <- 1
-      trunc[ max_copy_number <= trunc.max.min.copy.number ] <- 1
+      full_gene_loss[ max_copy_number <= full.gene.loss.max.max.copy.number ] <- 1
+      trunc[ min_copy_number <= trunc.max.min.copy.number ] <- 1
       loh[ min_minor_allele_ploidy <= loh.max.min.minor.allele.ploidy ] <- 1
    })
    
