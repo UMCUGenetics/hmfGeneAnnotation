@@ -3,10 +3,12 @@
 #' @description Primarily used to determine full gene loss and LOH
 #'
 #' @param df.cnv HMF *.gene.cnv table
-#' @param min.cn.diff.in.gene Placeholder
-#' @param max.max.copy.number Placeholder
-#' @param min.min.copy.number Placeholder
-#' @param max.min.minor.allele.ploidy Placeholder
+#' @param full.gene.loss.max.max.copy.number The max max_copy_number for a gene to be considered to 
+#' be completely lost (deep deletion)
+#' @param trunc.max.min.copy.number The max min_copy_number to for a gene to be considered to have
+#' a truncation
+#' @param loh.max.min.minor.allele.ploidy The maximum min_minor_allele_ploidy for a gene to be
+#' considered to have loss of heterozygosity
 #' @param rm.non.selected.genes Remove genes not specified by the user in genes.bed
 #' @param genes.bed A bed file which contains ENSEMBL gene ids
 #'
@@ -14,73 +16,67 @@
 #' @export
 #'
 
-# sample_name='CPCT02070023R_CPCT02070023TII'
-# out_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_update/vcf_subset/',sample_name)
-#
-# input_paths <- list(
-#    cnv = paste0(out_dir,'/',sample_name,'.purple.gene.cnv'),
-#    germ = paste0(out_dir,'/varsig/',sample_name,'_varsigs_germ.txt.gz'),
-#    som = paste0(out_dir,'/varsig/',sample_name,'_varsigs_som.txt.gz'),
-#    purity = paste0(out_dir,'/',sample_name,'.purple.purity')
-# )
-#
-# input <- list(
-#    cnv = read.delim(input_paths$cnv),
-#    germ = read.delim(input_paths$germ),
-#    som = read.delim(input_paths$som),
-#    purity = read.table(input_paths$purity, skip=1)[,1]
-# )
-# df.cnv <- input$cnv
-
 mkMutProfileCnv <- function(
    df.cnv,
-   min.cn.diff.in.gene = CUTOFFS$min.cn.diff.in.gene,
-   max.max.copy.number = CUTOFFS$max.max.copy.number,
-   min.min.copy.number = CUTOFFS$min.min.copy.number,
-   max.min.minor.allele.ploidy = CUTOFFS$max.min.minor.allele.ploidy,
+   
+   ## Cutoffs
+   full.gene.loss.max.max.copy.number = CUTOFFS$full.gene.loss.max.max.copy.number, ## full_gene_loss
+   trunc.max.min.copy.number = CUTOFFS$trunc.max.min.copy.number,
+   loh.max.min.minor.allele.ploidy = CUTOFFS$loh.max.min.minor.allele.ploidy, ## loh
+
+   ## Scoring
+   scoring=SCORING_CNV,
+
+   ## Misc
    rm.non.selected.genes=T, genes.bed=NULL,
    verbose=T
 ){
    if(nrow(df.cnv) == 0){
-      # col_names <- c('chrom','start','end','hgnc_symbol','ensembl_gene_id',
-      #   'min_copy_number','max_copy_number','min_minor_allele_ploidy',
-      #   'full_gene_loss','loh','cn_diff_in_gene','cn_break_in_gene','amp'
-      #   )
-      #
-      # stop(return(
-      #    setNames(data.frame(matrix(ncol=length(col_names), nrow=0)), col_names)
-      # ))
       if(verbose){ warning('No rows are present in the gene cnv table. Returning NA...') }
       stop(return(NA))
    }
 
-   if(verbose){ message('Annotating gene cnv table...') }
-   out <- do.call(rbind, lapply(1:nrow(df.cnv), function(i){
-      #i=1
-      row <- df.cnv[i,]
-
-      ## Initiate scoring vector
-      full_gene_loss=0
+   #df.cnv=input$cnv
+   
+   #--------- Main ---------#
+   out <- cbind(
+      df.cnv,
+      full_gene_loss=0,
+      trunc=0,
       loh=0
-      amp=0
-      cn_diff_in_gene=0
-      cn_break_in_gene=0
-
-      ## 'full gene loss' and 'loh' scores
-      if(row$max_copy_number < max.max.copy.number){ full_gene_loss <- 1 }
-      if(row$min_minor_allele_ploidy < max.min.minor.allele.ploidy){ loh <- 1 }
-
-      cn_diff_in_gene <- abs(row$max_copy_number - row$min_copy_number) ## max should be > min, but do abs() just in case
-      if(cn_diff_in_gene >= min.cn.diff.in.gene){ cn_break_in_gene <- 1 }
-
-      if(row$min_copy_number >= min.min.copy.number){ amp <- 1 }
-
-      cbind(
-         row,
-         full_gene_loss, loh, cn_diff_in_gene, cn_break_in_gene, amp
-      )
+   )
+   
+   if(verbose){ message('Determining the presence of CNV events...') }
+   out <- within(out,{
+      full_gene_loss[ min_copy_number <= full.gene.loss.max.max.copy.number ] <- 1
+      trunc[ max_copy_number <= trunc.max.min.copy.number ] <- 1
+      loh[ min_minor_allele_ploidy <= loh.max.min.minor.allele.ploidy ] <- 1
+   })
+   
+   if(verbose){ message('Getting max CNV effect...') }
+   ## Get max CNV eff based on ordering in cnv_eff_names_order
+   cnv_eff_names_order <- c('full_gene_loss','trunc','loh')
+   out_ss <- as.matrix(out[cnv_eff_names_order])
+   out$cnv_eff <- cnv_eff_names_order[ max.col(out_ss, ties.method='first') ]
+   
+   ## Set if all cnv_eff are 0, set cnv_eff to 'none' (instead of 'full_gene_loss')
+   out$cnv_eff[ rowSums(out_ss)==0 ] <- 'none' 
+   
+   if(verbose){ message('Assigning biallele score to CNV events...') }
+   cnv_scores <- unname( scoring[match(out$cnv_eff, names(scoring))] )
+   cnv_scores <- do.call(rbind, lapply(cnv_scores, function(i){
+      if(is.null(i)){ c(0,0) }
+      else { i }
    }))
-
+   colnames(cnv_scores) <- c('a1.score','a2.score')
+   
+   out <- cbind(out, cnv_scores)
+   
+   #--------- Overwrite HGNC symbol (some hgnc symbols from the purple.gene.cnv file are outdated) ---------#
+   if(verbose){ message('Getting HGNC symbols...') }
+   out$hgnc_symbol <- ensgToHgncSymbol(out$ensembl_gene_id)
+   
+   #--------- Remove ENSG not provide by user (in genes bed file) ---------#
    if(rm.non.selected.genes){
       if(is.null(genes.bed)){
          warning('No genes.bed was not specified. Skipping removing non user selected genes')

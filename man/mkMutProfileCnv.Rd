@@ -5,22 +5,23 @@
 \title{Create annotations to the HMF CNV table}
 \usage{
 mkMutProfileCnv(df.cnv,
-  min.cn.diff.in.gene = CUTOFFS$min.cn.diff.in.gene,
-  max.max.copy.number = CUTOFFS$max.max.copy.number,
-  min.min.copy.number = CUTOFFS$min.min.copy.number,
-  max.min.minor.allele.ploidy = CUTOFFS$max.min.minor.allele.ploidy,
-  rm.non.selected.genes = T, genes.bed = NULL, verbose = T)
+  full.gene.loss.max.max.copy.number = CUTOFFS$full.gene.loss.max.max.copy.number,
+  trunc.max.min.copy.number = CUTOFFS$trunc.max.min.copy.number,
+  loh.max.min.minor.allele.ploidy = CUTOFFS$loh.max.min.minor.allele.ploidy,
+  scoring = SCORING_CNV, rm.non.selected.genes = T, genes.bed = NULL,
+  verbose = T)
 }
 \arguments{
 \item{df.cnv}{HMF *.gene.cnv table}
 
-\item{min.cn.diff.in.gene}{Placeholder}
+\item{full.gene.loss.max.max.copy.number}{The max max_copy_number for a gene to be considered to 
+be completely lost (deep deletion)}
 
-\item{max.max.copy.number}{Placeholder}
+\item{trunc.max.min.copy.number}{The max min_copy_number to for a gene to be considered to have
+a truncation}
 
-\item{min.min.copy.number}{Placeholder}
-
-\item{max.min.minor.allele.ploidy}{Placeholder}
+\item{loh.max.min.minor.allele.ploidy}{The maximum min_minor_allele_ploidy for a gene to be
+considered to have loss of heterozygosity}
 
 \item{rm.non.selected.genes}{Remove genes not specified by the user in genes.bed}
 
