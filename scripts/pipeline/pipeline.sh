@@ -116,10 +116,10 @@ EOF
 	germ_vcf_ss=$out_dir/${sample_name}.germ.vcf.gz
 	if [[ $skip_to_step -le 2 ]]; then 
 		echo -e "\n#========= Filter vcfs for gene coords =========#"
-		execJob -i $som_vcf_path -o $som_vcf_ss -p fvS -m 4G -t 0:10:00 \
+		execJob -i $som_vcf_path -o $som_vcf_ss -p fvS -m 4G -t 0:30:00 \
 		-c "source $filterVcf_sh; filterVcf @INPUT @OUTPUT $genes_bed 'somatic'"
 
-		execJob -i $germ_vcf_path -o $germ_vcf_ss -p fvG -m 4G -t 0:10:00 \
+		execJob -i $germ_vcf_path -o $germ_vcf_ss -p fvG -m 4G -t 0:30:00 \
 		-c "source $filterVcf_sh; filterVcf @INPUT @OUTPUT $genes_bed 'germline'"
 	fi
 
@@ -137,10 +137,10 @@ EOF
 
 	if [[ $skip_to_step -le 3 ]]; then
 		echo -e "\n#========= Extract relevant vcf fields into txt =========#"
-		execJob -i $som_vcf_ss -o $som_txt_ss -p xvfS -w fvS_${sample_name}.job -m 4G -t 0:10:00 \
+		execJob -i $som_vcf_ss -o $som_txt_ss -p xvfS -w fvS_${sample_name}.job -m 4G -t 0:20:00 \
 		-c "source $extractVcfFields_sh; extractVcfFields @INPUT @OUTPUT $xvfS_mode"
 
-		execJob -i $germ_vcf_ss -o $germ_txt_ss -p xvfG -w fvG_${sample_name}.job -m 4G -t 0:10:00 \
+		execJob -i $germ_vcf_ss -o $germ_txt_ss -p xvfG -w fvG_${sample_name}.job -m 4G -t 0:20:00 \
 		-c "source $extractVcfFields_sh; extractVcfFields @INPUT @OUTPUT $xvfG_mode" 
 	fi
 
@@ -158,54 +158,20 @@ EOF
 	 	-c "$getClinSig_py -i @INPUT -o @OUTPUT"
 	fi
 
+# 	# hotspots_som_txt=$out_dir/varsig/hotspots_som.txt.gz
+# 	# hotspots_germ_txt=$out_dir/varsig/hotspots_germ.txt.gz
+# 	# if [[ $skip_to_step -le 5 ]]; then
+# 	# 	echo -e "\n#========= Hotspot annotation =========#"
+# 	# 	execJob -i $som_txt_ss -o $hotspots_som_txt -p ghS -w xvfS_${sample_name}.job -t 1:00:00 \
+# 	# 	-c "$detIsHotspotMut_py -i @INPUT -o @OUTPUT"
 
-	cadd_som_txt=$out_dir/varsig/cadd_som.txt.gz
-	cadd_germ_txt=$out_dir/varsig/cadd_germ.txt.gz
-	# if [[ $skip_to_step -le 5 ]]; then
-	# 	echo -e "\n#========= CADD annotation =========#"
-	# 	execJob -i $som_txt_ss -o $cadd_som_txt -p gcaS -w xvfS_${sample_name}.job -t 3:00:00 \
-	# 	-c "$getCaddAnn_py -i @INPUT -o @OUTPUT"
-
-	# 	execJob -i $germ_txt_ss -o $cadd_germ_txt -p gcaG -w xvfG_${sample_name}.job -t 3:00:00 \
-	# 	-c "$getCaddAnn_py -i @INPUT -o @OUTPUT"
-	# fi
-
-	cap_som_txt=$out_dir/varsig/cap_som.txt.gz
-	cap_germ_txt=$out_dir/varsig/cap_germ.txt.gz
-	# if [[ $skip_to_step -le 6 ]]; then
-	# 	echo -e "\n#========= MCAP/SCAP annotation =========#"
-	# 	execJob -i $som_txt_ss -o $cap_som_txt -p gCAPaS -w xvfS_${sample_name}.job -t 1:00:00 \
-	# 	-c "$getCapAnn_py -i @INPUT -o @OUTPUT"
-
-	# 	execJob -i $germ_txt_ss -o $cap_germ_txt -p gCAPaG -w xvfG_${sample_name}.job -t 1:00:00 \
-	# 	-c "$getCapAnn_py -i @INPUT -o @OUTPUT"
-	# fi
-
-	gnomad_som_txt=$out_dir/varsig/gnomad_som.txt.gz
-	gnomad_germ_txt=$out_dir/varsig/gnomad_germ.txt.gz
-	# if [[ $skip_to_step -le 7 ]]; then
-	# 	echo -e "\n#========= GNOMAD annotation =========#"
-	# 	execJob -i $som_txt_ss -o $gnomad_som_txt -p gGNOMADaS -w xvfS_${sample_name}.job -t 2:00:00 \
-	# 	-c "$getGnomadAnn_py -i @INPUT -o @OUTPUT"
-
-	# 	execJob -i $germ_txt_ss -o $gnomad_germ_txt -p gGNOMADaG -w xvfG_${sample_name}.job -t 5:00:00 \
-	# 	-c "$getGnomadAnn_py -i @INPUT -o @OUTPUT"
-	# fi
-
-	hotspots_som_txt=$out_dir/varsig/hotspots_som.txt.gz
-	hotspots_germ_txt=$out_dir/varsig/hotspots_germ.txt.gz
-	if [[ $skip_to_step -le 8 ]]; then
-		echo -e "\n#========= Hotspot annotation =========#"
-		execJob -i $som_txt_ss -o $hotspots_som_txt -p ghS -w xvfS_${sample_name}.job -t 1:00:00 \
-		-c "$detIsHotspotMut_py -i @INPUT -o @OUTPUT"
-
-		execJob -i $germ_txt_ss -o $hotspots_germ_txt -p ghG -w xvfG_${sample_name}.job -t 3:00:00 \
-		-c "$detIsHotspotMut_py -i @INPUT -o @OUTPUT"
-	fi
+# 	# 	execJob -i $germ_txt_ss -o $hotspots_germ_txt -p ghG -w xvfG_${sample_name}.job -t 3:00:00 \
+# 	# 	-c "$detIsHotspotMut_py -i @INPUT -o @OUTPUT"
+# 	# fi
 	
 	som_varsig_txt=$varsig_dir/${sample_name}_varsigs_som.txt.gz
 	germ_varsig_txt=$varsig_dir/${sample_name}_varsigs_germ.txt.gz
-	if [[ $skip_to_step -le 9 ]]; then
+	if [[ $skip_to_step -le 6 ]]; then
 		echo -e "\n#=========Merge variant significance with variant txt =========#"
 		execJob -o $som_varsig_txt -p mvsS -w "gvsS_${sample_name}.job" -c \
 		"paste <(zcat $som_txt_ss) <(zcat $clinsig_som_txt) <(zcat $hotspots_som_txt) | gzip -c > $som_varsig_txt"
@@ -215,7 +181,7 @@ EOF
 	fi
 
 	
-	if [[ $skip_to_step -le 10 ]]; then
+	if [[ $skip_to_step -le 7 ]]; then
 		echo -e "\n#========= Determine gene statuses =========#"
 		gene_statuses_dir=$out_dir/gene_statuses/; mkdir -p $gene_statuses_dir
 		execJob -p dgs -m 8G \
