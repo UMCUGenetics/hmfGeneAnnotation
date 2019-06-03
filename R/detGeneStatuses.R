@@ -18,7 +18,7 @@ detGeneStatuses <- function(
    som.path, 
    purity.path, 
    genes.bed.path, 
-   ini.path
+   ini.path=NULL
 ){
    
    #========= Inputs =========#
@@ -34,6 +34,12 @@ detGeneStatuses <- function(
    # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_ini.R'
    # setwd("~/Documents")
 
+   # sample_name='P10_A2988_A228p'
+   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/vcf_subset/',sample_name)
+   # out.dir=paste0(in_dir,'/gene_statuses/')
+   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/scripts/annotate_genes/detGeneStatuses_ini.R'
+   # setwd("~/Documents")
+   
    # input_paths <- list(
    #    cnv = paste0(in_dir,'/',sample_name,'.purple.gene.cnv'),
    #    germ = paste0(in_dir,'/varsig/',sample_name,'_varsigs_germ.txt.gz'),
@@ -49,7 +55,8 @@ detGeneStatuses <- function(
    # )
    
    ## Real
-   source(ini.path)
+   if(!is.null(ini.path)){ source(ini.path) }
+   
    
    input <- list(
       cnv = read.delim(cnv.path),
@@ -147,12 +154,11 @@ detGeneStatuses <- function(
    
    if(OPTIONS$verbose){ message('\n## Calculating hit_scores...') }
    #gene_diplotypes$hit_score <- calcHitScores(gene_diplotypes)
-   gene_diplotypes <- cbind(
-      gene_diplotypes, 
-      calcHitScores(gene_diplotypes, DIPLOTYPE_ORIGIN_RANK)
+   gene_diplotypes <- insColAfter(
+      gene_diplotypes,
+      calcHitScores(gene_diplotypes, DIPLOTYPE_ORIGIN_RANK),
+      'hgnc_symbol'
    )
-   
-   #head(gene_diplotypes)
    
    if(OPTIONS$verbose){ message('\n## Determining most pathogenic diplotype per gene...') }
    gene_diplotypes_max <- (function(){

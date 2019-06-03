@@ -15,7 +15,6 @@ GENES_HGNC <- read.delim(paste0(ROOT_DIR,'/data/gene_selection/hgnc_gene_names_2
 #--------- Options ---------#
 OPTIONS <- list(
    overwrite.mut.profile=F,
-   overwrite.biall.mut.profile=T,
    keep.only.first.eff=T,
    gene.identifier='ensembl_gene_id',
    verbose=T
@@ -46,7 +45,7 @@ SCORING_MUT <- list(
 
 DIPLOTYPE_ORIGIN_RANK <- c('cnv_cnv','cnv_som','cnv_germ','germ_som')
 
-#SNPEFF_SIMPLE_ANN_LOOKUP <- read.delim(paste0(SCORING_TABLES_DIR,'/snpeff/snpeff_scoring.txt'))[c('ann','ann_s2')]
+SNPEFF_SIMPLE_ANN_LOOKUP <- read.delim(paste0(SCORING_TABLES_DIR,'/snpeff/snpeff_scoring.txt'))[c('ann','ann_s1')]
 
 #--------- Cutoffs ---------#
 CUTOFFS <- list(
