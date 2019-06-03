@@ -66,14 +66,15 @@ mkGeneDiplotypesCnvMut <- function(mut.profile.cnv, mut.profile.mut, mut.origin,
    if(!(mut.origin %in% c('germ','som'))){ stop("mut.origin must be 'germ' or 'som'") }
    
    union_genes <- unique(c( mut.profile.cnv$ensembl_gene_id, mut.profile.mut$ensembl_gene_id ))
+   n_genes <- length(union_genes)
    
-   if(verbose){
-      pb <- txtProgressBar(min=0, max=length(union_genes), initial=0, style=3, width=100)
+   if(verbose & n_genes!=0){
+      pb <- txtProgressBar(min=0, max=n_genes, initial=0, style=3, width=100)
       counter <- 0
    }
    
    l <- lapply(union_genes, function(i){
-      if(verbose){
+      if(verbose & n_genes!=0){
          counter <<- counter+1
          setTxtProgressBar(pb,counter)
       }
@@ -206,14 +207,15 @@ mkGeneDiplotypesGermSom <- function(mut.profile.germ, mut.profile.som, verbose=T
    #mut.profile.som=mut_profile$som
    
    union_genes <- unique(c( mut.profile.germ$ensembl_gene_id, mut.profile.som$ensembl_gene_id ))
+   n_genes <- length(union_genes)
    
-   if(verbose){
+   if(verbose & n_genes!=0){
       pb <- txtProgressBar(min=0, max=length(union_genes), initial=0, style=3, width=100)
       counter <- 0
    }
    
    l <- lapply(union_genes, function(i){
-      if(verbose){
+      if(verbose & n_genes!=0){
          counter <<- counter+1
          setTxtProgressBar(pb,counter)
       }
