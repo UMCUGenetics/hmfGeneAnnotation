@@ -91,7 +91,8 @@ mkGeneDiplotypesCnvMut <- function(mut.profile.cnv, mut.profile.mut, mut.origin,
       df_mut <- mut.profile.mut[mut.profile.mut$ensembl_gene_id==i,]
       
       if(nrow(df_cnv)==0 & nrow(df_mut)==0){
-         return( getBialleleCols(as='data.frame') )
+         #return( getBialleleCols(as='data.frame') )
+         return( NULL )
       }
       
       #========= Full gene loss / truncation cases =========#
@@ -189,117 +190,236 @@ mkGeneDiplotypesCnvMut <- function(mut.profile.cnv, mut.profile.mut, mut.origin,
 # table(df_cnv_mut$a1)
 
 ####################################################################################################
-#' Merge germ and som mut profiles into a table the describes the events of allele 1 and 2
+#' Merge germ/som mut profiles into a table the describes the events of allele 1 and 2
 #'
 #' @description Per gene, only the most pathogenic germ/som variant pairs are merged. This
 #' prevents the table from growing exponentially.
 #'
-#' @param mut.profile.cnv CNV mut profile table
-#' @param mut.profile.mut germ or som mut profile table
-#' @param mut.origin Indicate whether allele 2 originates from 'germ' or 'som'. Used to create
-#' the diplotype_origin column
+#' @param mut.profile.mut1 germ/som mut profile table
+#' @param mut.profile.mut2 germ/som mut profile table
+#' @param diplotype.origin Indicate the mut/mut combination: 'germ_som', 'som_som', 'germ_germ'
 #' @param verbose Print progress messages?
 #'
 #' @return A table the describes the events of allele 1 and 2
 #' @export
-mkGeneDiplotypesGermSom <- function(mut.profile.germ, mut.profile.som, verbose=T){
-   #mut.profile.germ=mut_profile$germ
-   #mut.profile.som=mut_profile$som
+
+mkGeneDiplotypesMutMut <- function(
+   mut.profile.mut1, mut.profile.mut2, 
+   diplotype.origin, min.biall.score=c(3,3),
+   get.max.effect.per.gene=T,
+   verbose=T
+){
+   #mut.profile.mut1=mut_profile$som
+   #mut.profile.mut1=mut_profile$germ
+   #mut.profile.mut2=mut_profile$som
    
-   union_genes <- unique(c( mut.profile.germ$ensembl_gene_id, mut.profile.som$ensembl_gene_id ))
-   n_genes <- length(union_genes)
+   #========= Col names =========#
+   common_cols <- getBialleleCols('common',as='names')
    
-   if(verbose & n_genes!=0){
-      pb <- txtProgressBar(min=0, max=length(union_genes), initial=0, style=3, width=100)
-      counter <- 0
+   sel_cols <- list(
+      common=getBialleleCols('common',as='names'),
+      a1_out=getBialleleCols('allele1',as='names'),
+      a2_out=getBialleleCols('allele2',as='names')
+   )
+   
+   sel_cols$a1_source <- (function(){
+      v <- sel_cols$a1_out
+      v[v=='a1'] <- 'snpeff_eff'
+      v <- gsub('a1[.]','',v)
+      return(v)
+   })()
+   
+   sel_cols$a2_source <- (function(){
+      v <- sel_cols$a2_out
+      v[v=='a2'] <- 'snpeff_eff'
+      v <- gsub('a2[.]','',v)
+      return(v)
+   })()
+   
+   #========= Merge =========#
+   formatMutProfile <- function(mut.profile.mut, allele){
+      df <- mut.profile.mut[, unlist(sel_cols[ c('common',paste0(allele,'_source') )], use.names=F) ]
+      
+      if(allele=='a1'){
+         df <- df[df$max_score>=min.biall.score[1],]
+      } else if(allele=='a2') {
+         df <- df[df$max_score>=min.biall.score[2],]
+      }
+      
+      colnames(df) <- unlist(sel_cols[c('common',paste0(allele,'_out'))], use.names=F)
+      return(df)
    }
    
-   l <- lapply(union_genes, function(i){
-      if(verbose & n_genes!=0){
-         counter <<- counter+1
-         setTxtProgressBar(pb,counter)
-      }
-      
-      #print(i)
-      
-      #i='ENSG00000114315'
-      #i='ENSG00000012048' ## BRCA1
-      #i='ENSG00000139618' ## BRCA2
-      #i='ENSG00000141510' ## TP53
-      #i='ENSG00000067606' ## PRKCZ
-      #i='test_null'
-      
-      df_germ <- mut.profile.germ[mut.profile.germ$ensembl_gene_id==i,]
-      df_som <- mut.profile.som[mut.profile.som$ensembl_gene_id==i,]
-      
-      #========= Col names =========#
-      common_cols <- getBialleleCols('common',as='names')
-      
-      sel_cols <- list(
-         common=getBialleleCols('common',as='names'),
-         a1_out=getBialleleCols('allele1',as='names'),
-         a2_out=getBialleleCols('allele2',as='names')
-      )
-      
-      sel_cols$a1_source <- (function(){
-         v <- sel_cols$a1_out
-         v[v=='a1'] <- 'snpeff_eff'
-         v <- gsub('a1[.]','',v)
-         return(v)
-      })()
-      
-      sel_cols$a2_source <- (function(){
-         v <- sel_cols$a2_out
-         v[v=='a2'] <- 'snpeff_eff'
-         v <- gsub('a2[.]','',v)
-         return(v)
-      })()
-      
-      #========= Germ =========#
-      out_germ <- getBialleleCols(c('common','mut_profile_origin','coords','allele1'),as='data.frame')
-      
-      if(nrow(df_germ)!=0){
-         df_germ <- df_germ[which.max(df_germ$max_score),]
-         # out_germ[common_cols] <- df_germ[common_cols]
-         out_germ[sel_cols$a1_out] <- df_germ[sel_cols$a1_source]
-      }
-      
-      ## fill origin cols
-      out_germ$diplotype_origin <- 'germ_som'
-      # out_germ <- within(out_germ, {
-      #    diplotype_origin <- 'germ_som'
-      #    a1.origin <- 'germ'
-      #    a2.origin <- 'som'
-      # })
-      
-      #========= Som =========#
-      out_som <- getBialleleCols(c('common','coords','allele2'),as='data.frame')
-      
-      if(nrow(df_som)!=0){
-         df_som <- df_som[which.max(df_som$max_score),]
-         # out_som[common_cols] <- df_som[common_cols]
-         out_som[sel_cols$a2_out] <- df_som[sel_cols$a2_source]
-      }
-      
-      #========= Add gene names =========#
-      out_germ[common_cols] <- 
-         if(nrow(df_germ)!=0){
-            df_germ[common_cols]
-         } else {
-            df_som[common_cols]
-         }
-      
-      ##
-      out <- cbind(out_germ, out_som[!(colnames(out_som) %in% common_cols)])
-      
-      return(out)
-      #ncol(out)
-      #length(getBialleleCols(as='names'))
-   })
+   df_mut1 <- formatMutProfile(mut.profile.mut1,'a1')
+   df_mut2 <- formatMutProfile(mut.profile.mut2,'a2')
    
-   return( do.call(rbind,l) )
+   out <- merge(df_mut1, df_mut2, by=sel_cols$common, all=T)
+   
+   if(nrow(out)==0){
+      return(NULL)
+   }
+   
+   #========= Fill NA's =========#
+   na_fills <- getBialleleCols(c('common','allele1','allele2'), as='data.frame')
+   
+   for(i in colnames(na_fills)){
+      out[is.na(out[,i]),i] <- na_fills[,i]
+   }
+   
+   #========= Remove dup rows =========#
+   if(identical(mut.profile.mut1,mut.profile.mut2)){
+      mkVariantStrings <- function(df){
+         lapply(c('a1','a2'),function(i){
+            #i='a1'
+            cols <- c('ensembl_gene_id', paste0(i,'.hgvs_c'))
+            apply(df[cols], 1, function(j){
+               paste0(j, collapse=';')
+            })
+         })
+      }
+      
+      ## Remove duplicate rows where the two variants are exactly the same
+      variant_strings <- mkVariantStrings(out)
+      out <- out[variant_strings[[1]] != variant_strings[[2]],]
+      
+      if(nrow(out)==0){
+         return(NULL)
+      }
+      
+      ## Remove duplicate rows where a1 and a2 are mirrored
+      variant_strings <- mkVariantStrings(out)
+      biall_strings1 <- paste0(variant_strings[[1]],';',variant_strings[[2]])
+      biall_strings2 <- paste0(variant_strings[[2]],';',variant_strings[[1]])
+      
+      out$biall_strings1 <- biall_strings1
+      
+      i<-1
+      while(i<length(biall_strings1)){
+         dup_index <- which(biall_strings2 %in% biall_strings1[i])
+         biall_strings1 <- biall_strings1[-dup_index]
+         biall_strings2 <- biall_strings2[-dup_index]
+         i <- i+1
+      }
+      
+      out <- out[out$biall_strings1 %in% biall_strings1,]
+      out$biall_strings1 <- NULL
+   }
+   
+   #========= Export =========#
+   ## Select max pathogenicity only
+   if(get.max.effect.per.gene){
+      out_split <- split(out, out$hgnc_symbol)
+      out <- do.call(rbind,lapply(out_split,function(i){
+         max_index <- which.max(rowSums(i[,c('a1.max_score','a2.max_score')]))
+         i[max_index,]
+      }))
+   }
+   
+   ## Add diplotype origin column
+   out <- insColAfter(out, diplotype.origin, after='hgnc_symbol',colname='diplotype_origin')
+   
+   return(out)
 }
-#df_germ_som <- mergeGermSom(mut_profile$germ, mut_profile$som)
-#View(df_germ_som)
 
-#df <- rbind(df_cnv_mut, df_germ_som)
+# mkGeneDiplotypesMutMut <- function(mut.profile.mut1, mut.profile.mut2, diplotype.origin, verbose=T){
+#    #mut.profile.mut1=mut_profile$som
+#    #mut.profile.mut2=mut_profile$som
+#    
+#    union_genes <- unique(c( mut.profile.mut1$ensembl_gene_id, mut.profile.mut2$ensembl_gene_id ))
+#    n_genes <- length(union_genes)
+#    
+#    if(verbose & n_genes!=0){
+#       pb <- txtProgressBar(min=0, max=length(union_genes), initial=0, style=3, width=100)
+#       counter <- 0
+#    }
+#    
+#    l <- lapply(union_genes, function(i){
+#       if(verbose & n_genes!=0){
+#          counter <<- counter+1
+#          setTxtProgressBar(pb,counter)
+#       }
+#       
+#       #print(i)
+#       
+#       #i='ENSG00000114315'
+#       #i='ENSG00000012048' ## BRCA1
+#       #i='ENSG00000139618' ## BRCA2
+#       #i='ENSG00000141510' ## TP53
+#       #i='ENSG00000067606' ## PRKCZ
+#       #i='ENSG00000168702' ## LRP1B
+#       #i='test_null'
+#       
+#       df_mut1 <- mut.profile.mut1[mut.profile.mut1$ensembl_gene_id==i,]
+#       df_mut2 <- mut.profile.mut2[mut.profile.mut2$ensembl_gene_id==i,]
+#       
+#       #========= Col names =========#
+#       common_cols <- getBialleleCols('common',as='names')
+#       
+#       sel_cols <- list(
+#          common=getBialleleCols('common',as='names'),
+#          a1_out=getBialleleCols('allele1',as='names'),
+#          a2_out=getBialleleCols('allele2',as='names')
+#       )
+#       
+#       sel_cols$a1_source <- (function(){
+#          v <- sel_cols$a1_out
+#          v[v=='a1'] <- 'snpeff_eff'
+#          v <- gsub('a1[.]','',v)
+#          return(v)
+#       })()
+#       
+#       sel_cols$a2_source <- (function(){
+#          v <- sel_cols$a2_out
+#          v[v=='a2'] <- 'snpeff_eff'
+#          v <- gsub('a2[.]','',v)
+#          return(v)
+#       })()
+#       
+#       #========= Mut1 =========#
+#       out_mut1 <- getBialleleCols(c('common','mut_profile_origin','coords','allele1'),as='data.frame')
+#       
+#       if(nrow(df_mut1)!=0){
+#          df_mut1 <- df_mut1[which.max(df_mut1$max_score),]
+#          # out_mut1[common_cols] <- df_mut1[common_cols]
+#          out_mut1[sel_cols$a1_out] <- df_mut1[sel_cols$a1_source]
+#       }
+#       
+#       ## fill origin cols
+#       out_mut1$diplotype_origin <- diplotype.origin
+#       
+#       #========= Mut2 =========#
+#       out_mut2 <- getBialleleCols(c('common','coords','allele2'),as='data.frame')
+#       
+#       if(nrow(df_mut2)!=0){
+#          df_mut2 <- df_mut2[which.max(df_mut2$max_score),]
+#          # out_mut2[common_cols] <- df_mut2[common_cols]
+#          out_mut2[sel_cols$a2_out] <- df_mut2[sel_cols$a2_source]
+#       }
+#       
+#       #========= Add gene names =========#
+#       out_mut1[common_cols] <- 
+#          if(nrow(df_mut1)!=0){
+#             df_mut1[common_cols]
+#          } else {
+#             df_mut2[common_cols]
+#          }
+#       
+#       ##
+#       out <- cbind(out_mut1, out_mut2[!(colnames(out_mut2) %in% common_cols)])
+#       
+#       #========= Remove rows where the two variants are exactly the same =========#
+#       variant_strings <- lapply(c('a1.hgvs_c','a2.hgvs_c'),function(i){
+#          apply(out[c('ensembl_gene_id',i)], 1, function(j){
+#             paste(j, collapse='_')
+#          })
+#       })
+#       out <- out[variant_strings[[1]] != variant_strings[[2]],]
+#       
+#       return(out)
+#       #ncol(out)
+#       #length(getBialleleCols(as='names'))
+#    })
+#    
+#    return( do.call(rbind,l) )
+# }
+# 

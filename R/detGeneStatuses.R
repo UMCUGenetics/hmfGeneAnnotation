@@ -24,20 +24,14 @@ detGeneStatuses <- function(
    #========= Inputs =========#
    options(stringsAsFactors=F)
    
-   ## Testing
+   # ## Testing
    # sample_name='CPCT02070055T' ## BRCA2 full gene loss
    # sample_name='CPCT02010419T' ## BRCA2 LOH + stop gained
    # sample_name='CPCT02010708T' ## BRCA1 LOH + frameshift
    # sample_name='CPCT02050231T' ## BRCA1 LOH + missense
-   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_DR010_DR047/vcf_subset/',sample_name)
+   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD_data/HMF_DR010_DR047/vcf_subset/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
-   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_ini.R'
-   # setwd("~/Documents")
-
-   # sample_name='P10_A2988_A228p'
-   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/vcf_subset/',sample_name)
-   # out.dir=paste0(in_dir,'/gene_statuses/')
-   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/scripts/annotate_genes/detGeneStatuses_ini.R'
+   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/R/detGeneStatuses_ini.R'
    # setwd("~/Documents")
    
    # input_paths <- list(
@@ -56,7 +50,6 @@ detGeneStatuses <- function(
    
    ## Real
    if(!is.null(ini.path)){ source(ini.path) }
-   
    
    input <- list(
       cnv = read.delim(cnv.path),
@@ -138,9 +131,15 @@ detGeneStatuses <- function(
       verbose=OPTIONS$verbose
    )
    
+   if(OPTIONS$verbose){ message('> som_som...') }
+   l_gene_diplotypes$som_som <- mkGeneDiplotypesMutMut(
+      mut_profile$som, mut_profile$som, 'som_som',
+      verbose=OPTIONS$verbose
+   )
+   
    if(OPTIONS$verbose){ message('> germ_som...') }
-   l_gene_diplotypes$germ_som <- mkGeneDiplotypesGermSom(
-      mut_profile$germ, mut_profile$som,
+   l_gene_diplotypes$germ_som <- mkGeneDiplotypesMutMut(
+      mut_profile$germ, mut_profile$som, 'germ_som',
       verbose=OPTIONS$verbose
    )
 
@@ -153,7 +152,6 @@ detGeneStatuses <- function(
    gene_diplotypes <- do.call(rbind, l_gene_diplotypes)
    
    if(OPTIONS$verbose){ message('\n## Calculating hit_scores...') }
-   #gene_diplotypes$hit_score <- calcHitScores(gene_diplotypes)
    gene_diplotypes <- insColAfter(
       gene_diplotypes,
       calcHitScores(gene_diplotypes, DIPLOTYPE_ORIGIN_RANK),
@@ -168,6 +166,8 @@ detGeneStatuses <- function(
       return(df)
    })()
    
+   # View(subset(gene_diplotypes_max, diplotype_origin %in% c('germ_som','som_som')))
+   # subset(gene_diplotypes, is.na(hit_score_boosted))
    # subset(gene_diplotypes_max, hgnc_symbol %in% c('BRCA1','BRCA2'))
    # subset(gene_diplotypes, hgnc_symbol %in% c('BRCA1','BRCA2'))
    # table(gene_diplotypes_max$a1)
