@@ -34,6 +34,11 @@ detGeneStatuses <- function(
    # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/R/detGeneStatuses_ini.R'
    # setwd("~/Documents")
    
+   # sample_name='P11_A2960_A236'
+   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD_data/Rotterdam_Patient_Samples/gene_annotation/Rotterdam_Patient_Samples/',sample_name)
+   # out.dir=paste0(in_dir,'/gene_statuses/')
+   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/scripts/annotate_genes/run_pipeline/detGeneStatuses_ini.R'
+
    # input_paths <- list(
    #    cnv = paste0(in_dir,'/',sample_name,'.purple.gene.cnv'),
    #    germ = paste0(in_dir,'/varsig/',sample_name,'_varsigs_germ.txt.gz'),
@@ -59,6 +64,7 @@ detGeneStatuses <- function(
    )
    
    #genes.bed.path <- paste0(ROOT_DIR, '/data/gene_selection/genes.bed')
+   #genes.bed.path <- '/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/scripts/annotate_genes/genes.bed'
    genes_bed <- read.delim(genes.bed.path, check.names=F)
    
    #========= Make output dir =========#
@@ -155,7 +161,15 @@ detGeneStatuses <- function(
    gene_diplotypes <- insColAfter(
       gene_diplotypes,
       calcHitScores(gene_diplotypes, DIPLOTYPE_ORIGIN_RANK),
-      'hgnc_symbol'
+      after='hgnc_symbol'
+   )
+   
+   if(OPTIONS$verbose){ message('\n## Determining biallelic hit type...') }
+   gene_diplotypes <- insColAfter(
+      gene_diplotypes,
+      detHitType(gene_diplotypes),
+      after='diplotype_origin',
+      colname='hit_type'
    )
    
    if(OPTIONS$verbose){ message('\n## Determining most pathogenic diplotype per gene...') }
