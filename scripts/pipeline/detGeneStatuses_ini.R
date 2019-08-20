@@ -43,7 +43,7 @@ SCORING_MUT <- list(
    enigma = mkScoringVector(paste0(SCORING_TABLES_DIR,'/enigma/enigma_scoring.txt'))
 )
 
-DIPLOTYPE_ORIGIN_RANK <- c('cnv_cnv','cnv_som','cnv_germ','germ_som')
+DIPLOTYPE_ORIGIN_RANK <- c('cnv_cnv','cnv_som','cnv_germ','som_som','germ_som')
 
 SNPEFF_SIMPLE_ANN_LOOKUP <- read.delim(paste0(SCORING_TABLES_DIR,'/snpeff/snpeff_scoring.txt'))[c('ann','ann_s1')]
 
