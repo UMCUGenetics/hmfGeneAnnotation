@@ -8,7 +8,7 @@ hmfGeneAnnotation is a pipeline designed to determine the biallelic status of a 
 - Tumor purity (\*.purple.purity)
 - Copy number info per gene (\*.purple.gene.cnv)
 - Germline SNV/indel vcf (\*.annotated.vcf.gz)
-- Somatic SNV/indel vcf (\_post_processed.vcf.gz)
+- Somatic SNV/indel vcf (\*\_post_processed.vcf.gz)
 
 ### Other
 - Bed file with the chromosome, start position, and end position of the desired genes. See hmfGeneAnnotation/data/gene_selection/genes.bed as an example.
