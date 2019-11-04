@@ -16,51 +16,51 @@ detGeneStatuses <- function(
    cnv.path, 
    germ.path, 
    som.path, 
-   purity.path, 
+   #purity.path, 
    genes.bed.path, 
-   ini.path=NULL
+   ini.path
 ){
    
    #========= Inputs =========#
    options(stringsAsFactors=F)
+   source(ini.path)
    
    # ## Testing
    # sample_name='CPCT02070055T' ## BRCA2 full gene loss
    # sample_name='CPCT02010419T' ## BRCA2 LOH + stop gained
    # sample_name='CPCT02010708T' ## BRCA1 LOH + frameshift
    # sample_name='CPCT02050231T' ## BRCA1 LOH + missense
+   # sample_name='CPCT02010753T' ## BRCA2 LOH + 2 somatic frameshifts
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD_data/HMF_DR010_DR047/vcf_subset/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
-   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/R/detGeneStatuses_ini.R'
-   # setwd("~/Documents")
-   
+   # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_ini.R'
+
    # sample_name='P11_A2960_A236'
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD_data/Rotterdam_Patient_Samples/gene_annotation/Rotterdam_Patient_Samples/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
    # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/scripts/annotate_genes/run_pipeline/detGeneStatuses_ini.R'
-
+   
+   # sample_name='SBT-3.1_organoid'
+   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD_data/Ovarian_Organoids_Chris/gene_ann//',sample_name)
+   # out.dir=paste0(in_dir,'/gene_statuses/')
+   
    # input_paths <- list(
    #    cnv = paste0(in_dir,'/',sample_name,'.purple.gene.cnv'),
    #    germ = paste0(in_dir,'/varsig/',sample_name,'_varsigs_germ.txt.gz'),
-   #    som = paste0(in_dir,'/varsig/',sample_name,'_varsigs_som.txt.gz'),
-   #    purity = paste0(in_dir,'/',sample_name,'.purple.purity')
+   #    som = paste0(in_dir,'/varsig/',sample_name,'_varsigs_som.txt.gz')
    # )
    # 
    # input <- list(
    #    cnv = read.delim(input_paths$cnv),
    #    germ = read.delim(input_paths$germ),
-   #    som = read.delim(input_paths$som),
-   #    purity = read.table(input_paths$purity, skip=1)[,1]
+   #    som = read.delim(input_paths$som)
    # )
    
    ## Real
-   if(!is.null(ini.path)){ source(ini.path) }
-   
    input <- list(
       cnv = read.delim(cnv.path),
       germ = read.delim(germ.path),
-      som = read.delim(som.path),
-      purity = read.table(purity.path, skip=1)[,1]
+      som = read.delim(som.path)
    )
    
    #genes.bed.path <- paste0(ROOT_DIR, '/data/gene_selection/genes.bed')
@@ -186,6 +186,13 @@ detGeneStatuses <- function(
    # subset(gene_diplotypes, hgnc_symbol %in% c('BRCA1','BRCA2'))
    # table(gene_diplotypes_max$a1)
    
+   #========= Determine reading frame/add indel info =========#
+   gene_diplotypes_max <- cbind(
+      gene_diplotypes_max,
+      detReadingFrame(gene_diplotypes_max, mut_profile$germ, mut_profile$som)
+   )
+   
+   #========= Export diplotype tables =========#
    if(OPTIONS$verbose){ message('\n## Exporting gene diplotype tables...') }
    write.table(
       gene_diplotypes,

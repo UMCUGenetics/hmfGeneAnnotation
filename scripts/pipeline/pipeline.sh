@@ -17,7 +17,7 @@ pipeline (){
 	  	o) out_dir=${OPTARG} ;;
 	  	b) genes_bed=${OPTARG} ;;
 		n) sample_name=${OPTARG} ;;
-		p) purity_path=${OPTARG} ;;
+		#p) purity_path=${OPTARG} ;;
 		c) gene_cnv_path=${OPTARG} ;;
 		g) germ_vcf_path=${OPTARG} ;;
 		s) som_vcf_path=${OPTARG} ;;
@@ -93,16 +93,16 @@ pipeline (){
 	}
 
 	#--------- Main ---------#
-	purity_out=$out_dir/${sample_name}.purple.purity
+	#purity_out=$out_dir/${sample_name}.purple.purity
 	gene_cnv_ss=$out_dir/${sample_name}.purple.gene.cnv
 
 	if [[ $skip_to_step -le 1 ]]; then
-		echo -e "\n#========= Subset gene cnv; Copy purity =========#"
-		if [[ ! -f $purity_out ]]; then	
-			echo 'Copying purple purity file'; cp $purity_path $purity_out
-		else
-			echo 'SKIPPING: Copying purple purity file'
-		fi
+		echo -e "\n#========= Subset gene cnv =========#"
+		# if [[ ! -f $purity_out ]]; then	
+		# 	echo 'Copying purple purity file'; cp $purity_path $purity_out
+		# else
+		# 	echo 'SKIPPING: Copying purple purity file'
+		# fi
 		
 		execJob -i $gene_cnv_path -o $gene_cnv_ss -p ssgc -c \
 "{ 
@@ -158,26 +158,26 @@ EOF
 	 	-c "$getClinSig_py -i @INPUT -o @OUTPUT"
 	fi
 
-# 	# hotspots_som_txt=$out_dir/varsig/hotspots_som.txt.gz
-# 	# hotspots_germ_txt=$out_dir/varsig/hotspots_germ.txt.gz
-# 	# if [[ $skip_to_step -le 5 ]]; then
-# 	# 	echo -e "\n#========= Hotspot annotation =========#"
-# 	# 	execJob -i $som_txt_ss -o $hotspots_som_txt -p ghS -w xvfS_${sample_name}.job -t 1:00:00 \
-# 	# 	-c "$detIsHotspotMut_py -i @INPUT -o @OUTPUT"
+	# hotspots_som_txt=$out_dir/varsig/hotspots_som.txt.gz
+	# hotspots_germ_txt=$out_dir/varsig/hotspots_germ.txt.gz
+	# if [[ $skip_to_step -le 5 ]]; then
+	# 	echo -e "\n#========= Hotspot annotation =========#"
+	# 	execJob -i $som_txt_ss -o $hotspots_som_txt -p ghS -w xvfS_${sample_name}.job -t 1:00:00 \
+	# 	-c "$detIsHotspotMut_py -i @INPUT -o @OUTPUT"
 
-# 	# 	execJob -i $germ_txt_ss -o $hotspots_germ_txt -p ghG -w xvfG_${sample_name}.job -t 3:00:00 \
-# 	# 	-c "$detIsHotspotMut_py -i @INPUT -o @OUTPUT"
-# 	# fi
+	# 	execJob -i $germ_txt_ss -o $hotspots_germ_txt -p ghG -w xvfG_${sample_name}.job -t 3:00:00 \
+	# 	-c "$detIsHotspotMut_py -i @INPUT -o @OUTPUT"
+	# fi
 	
 	som_varsig_txt=$varsig_dir/${sample_name}_varsigs_som.txt.gz
 	germ_varsig_txt=$varsig_dir/${sample_name}_varsigs_germ.txt.gz
 	if [[ $skip_to_step -le 6 ]]; then
 		echo -e "\n#=========Merge variant significance with variant txt =========#"
 		execJob -o $som_varsig_txt -p mvsS -w "gvsS_${sample_name}.job" -c \
-		"paste <(zcat $som_txt_ss) <(zcat $clinsig_som_txt) <(zcat $hotspots_som_txt) | gzip -c > $som_varsig_txt"
+		"paste <(zcat $som_txt_ss) <(zcat $clinsig_som_txt) | gzip -c > $som_varsig_txt"
 
 		execJob -o $germ_varsig_txt -p mvsG -w "gvsG_${sample_name}.job" -c \
-		"paste <(zcat $germ_txt_ss) <(zcat $clinsig_germ_txt) <(zcat $hotspots_germ_txt) | gzip -c > $germ_varsig_txt"
+		"paste <(zcat $germ_txt_ss) <(zcat $clinsig_germ_txt) | gzip -c > $germ_varsig_txt"
 	fi
 
 	
