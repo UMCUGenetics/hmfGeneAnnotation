@@ -8,7 +8,10 @@
 #' order of diplotype.origin.rank to maintain priority when determining the max diplotype effect)
 #' @export
 #'
-calcHitScores <- function(gene.diplotypes, diplotype.origin.rank=c("cnv_cnv","cnv_som","cnv_germ","germ_som")){
+calcHitScores <- function(
+   gene.diplotypes, 
+   diplotype.origin.rank=c('cnv_cnv','cnv_som','cnv_germ','som_som','germ_som')
+){
    #gene.diplotypes=gene_diplotypes
    m <- as.matrix(gene.diplotypes[,c('a1.max_score','a2.max_score')])
    hit_score <- unname(rowSums(m))
