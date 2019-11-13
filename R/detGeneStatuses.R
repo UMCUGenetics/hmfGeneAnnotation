@@ -23,7 +23,6 @@ detGeneStatuses <- function(
    
    #========= Inputs =========#
    options(stringsAsFactors=F)
-   source(ini.path)
    
    # ## Testing
    # sample_name='CPCT02070055T' ## BRCA2 full gene loss
@@ -31,6 +30,7 @@ detGeneStatuses <- function(
    # sample_name='CPCT02010708T' ## BRCA1 LOH + frameshift
    # sample_name='CPCT02050231T' ## BRCA1 LOH + missense
    # sample_name='CPCT02010753T' ## BRCA2 LOH + 2 somatic frameshifts
+   # sample_name='CPCT02010399T'
    # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD_data/HMF_DR010_DR047/vcf_subset/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
    # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/pipeline/detGeneStatuses_ini.R'
@@ -57,6 +57,7 @@ detGeneStatuses <- function(
    # )
    
    ## Real
+   source(ini.path)
    input <- list(
       cnv = read.delim(cnv.path),
       germ = read.delim(germ.path),
@@ -95,6 +96,7 @@ detGeneStatuses <- function(
       if(OPTIONS$verbose){ message('> som...') }
       mut_profile$som <- mkMutProfileSnvIndel(
          input$som,
+         known.score.override=OPTIONS$known.score.override,
          gene.identifier=OPTIONS$gene.identifier,
          rm.non.selected.genes=T,
          genes.bed=genes_bed,
@@ -104,6 +106,7 @@ detGeneStatuses <- function(
       if(OPTIONS$verbose){ message('> germ...') }
       mut_profile$germ <- mkMutProfileSnvIndel(
          input$germ,
+         known.score.override=OPTIONS$known.score.override,
          gene.identifier=OPTIONS$gene.identifier,
          rm.non.selected.genes=T,
          genes.bed=genes_bed,

@@ -15,6 +15,7 @@ GENES_HGNC <- read.delim(paste0(ROOT_DIR,'/data/gene_selection/hgnc_gene_names_2
 #--------- Options ---------#
 OPTIONS <- list(
    overwrite.mut.profile=F,
+   known.score.override=T,
    keep.only.first.eff=T,
    gene.identifier='ensembl_gene_id',
    verbose=T

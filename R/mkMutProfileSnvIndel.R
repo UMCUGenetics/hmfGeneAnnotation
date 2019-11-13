@@ -3,6 +3,9 @@
 #' @description Primarily used to determine
 #'
 #' @param df.snv.indel A germline/somatic table originating from HMF germline/somatic vcfs
+#' @param mode Can be 'germline' or 'somatic'
+#' @param scoring A list containing the scoring for snpeff, clinvar, and enigma annotation values
+#' @param known.score.override clinvar and enigma score have priority?
 #' @param rm.non.selected.genes Remove genes not specified by the user in genes.bed
 #' @param genes.bed A bed file which contains ENSEMBL gene ids
 #' @param gene.identifier Can be 'snpeff_gene' or 'ensembl_gene_id'. If 'snpeff_gene', then ENSEMBL
@@ -18,6 +21,7 @@ mkMutProfileSnvIndel <- function(
    df.snv.indel, 
    mode,
    scoring=SCORING_MUT,
+   known.score.override=T,
    rm.non.selected.genes=T, 
    genes.bed=NULL,
    gene.identifier='ensembl_gene_id',
@@ -49,24 +53,77 @@ mkMutProfileSnvIndel <- function(
    enigma_score <- unname(scoring$enigma)[ match(df.snv.indel$enigma_sig,names(scoring$enigma)) ]
    enigma_score[is.na(enigma_score)] <- 0
 
-   sig_scores <- cbind(snpeff_score, clinvar_score, enigma_score)
-
+   sig_scores <- data.frame(clinvar_score, enigma_score, snpeff_score)
+   
+   # sig_scores[1,]
+   # which.max(c(NA,0,NA))
+   
    #--------- Calculate max score and which database it came from ---------#
    if(verbose){ message('Calculating max scores...') }
-   db_names <- sapply(strsplit(colnames(sig_scores),'_'), `[`, 1, USE.NAMES=F)
    
-   max_sig_scores <- t(apply(sig_scores,1,function(i){
-      max_score <- max(i)
-      if(max_score==0){ max_score_origin <- 'none' }
-      else{
-         max_score_origin <- db_names[which(i==max_score)]
-         max_score_origin <- paste(max_score_origin, collapse=',')
-      }
-      return(c(max_score, max_score_origin))
-   }))
-   max_sig_scores <- as.data.frame(max_sig_scores)
-   colnames(max_sig_scores) <- c('max_score','max_score_origin')
-   max_sig_scores$max_score <- as.integer(max_sig_scores$max_score)
+   
+   getMaxSigScores <- function(df){
+      db_names <- sapply(strsplit(colnames(df),'_'), `[`, 1, USE.NAMES=F)
+      out <- t(apply(df,1,function(i){
+         max_score <- max(i)
+         if(max_score<=0){ max_score_origin <- 'none' }
+         else{
+            max_score_origin <- db_names[which(i==max_score)]
+            max_score_origin <- paste(max_score_origin, collapse=',')
+         }
+         return(c(max_score, max_score_origin))
+      }))
+      out <- as.data.frame(out)
+      colnames(out) <- c('max_score','max_score_origin')
+      out$max_score <- as.integer(out$max_score)
+      return(out)
+   }
+   
+   if(!known.score.override){
+      max_sig_scores <- getMaxSigScores(sig_scores)
+   } else {
+      max_sig_scores_pre <- getMaxSigScores(sig_scores[,c('clinvar_score','enigma_score')])
+      colnames(max_sig_scores_pre) <- c('known_score','known_score_origin')
+      max_sig_scores_pre <- cbind(snpeff_score=sig_scores$snpeff_score,max_sig_scores_pre)
+      
+      ## override snpeff as max score if clinvar/enigma score is lower
+      max_sig_scores_pre$snpeff_score[
+         with(max_sig_scores_pre, { known_score < snpeff_score & known_score >= 1 })
+         ] <- 0
+      
+      max_sig_scores <- do.call(rbind,with(max_sig_scores_pre,{
+         Map(function(snpeff_score, known_score, known_score_origin){
+            
+            max_score <- 0
+            max_score_origin <- 'none'
+            
+            if(known_score==snpeff_score & snpeff_score!=0){
+               max_score <- known_score
+               max_score_origin <- paste0('snpeff,',known_score_origin)
+            }
+            
+            else if(known_score > snpeff_score) {
+               max_score <- known_score
+               max_score_origin <- known_score_origin
+            }
+            
+            else if(known_score < snpeff_score){
+               max_score <- snpeff_score
+               max_score_origin <- 'snpeff'
+               # if(known_score >=1){
+               #    max_score <- known_score
+               #    max_score_origin <- known_score_origin
+               # } else {
+               #    max_score <- snpeff_score
+               #    max_score_origin <- 'snpeff'
+               # }
+            }
+            
+            data.frame(max_score, max_score_origin)
+            
+         }, snpeff_score, known_score, known_score_origin)
+      }))
+   }
    
    ### Modifiy out ###
    out <- cbind(
@@ -74,7 +131,7 @@ mkMutProfileSnvIndel <- function(
       sig_scores,
       max_sig_scores
    )
-   
+   #subset(out, snpeff_gene=='BRCA2' & snpeff_eff=='missense_variant')
    #subset(out,ensembl_gene_id=='ENSG00000175279')
 
    #--------- Get ENSG if if not exist ---------#
