@@ -160,6 +160,9 @@ detGeneStatuses <- function(
    if(OPTIONS$verbose){ message('\n## Merging diplotype origins into one table...') }
    gene_diplotypes <- do.call(rbind, l_gene_diplotypes)
    
+   ## Fix to remove duplicate rows for full_gene_loss and trunc (due to being reported in both cnv_germ and cnv_som)
+   gene_diplotypes <- unique(gene_diplotypes)
+   
    if(OPTIONS$verbose){ message('\n## Calculating hit_scores...') }
    gene_diplotypes <- insColAfter(
       gene_diplotypes,
