@@ -12,12 +12,11 @@ pipeline (){
 	xvf_ignore_type=0
 	dgs_ini_path=''
 
-	while getopts 'o:b:n:p:c:g:s:t:i:k:d:' arg; do
+	while getopts 'o:b:n:c:g:s:t:i:k:d:' arg; do
 	  case "${arg}" in
 	  	o) out_dir=${OPTARG} ;;
 	  	b) genes_bed=${OPTARG} ;;
 		n) sample_name=${OPTARG} ;;
-		#p) purity_path=${OPTARG} ;;
 		c) gene_cnv_path=${OPTARG} ;;
 		g) germ_vcf_path=${OPTARG} ;;
 		s) som_vcf_path=${OPTARG} ;;
@@ -112,17 +111,22 @@ EOF
 }" ## Braces are required so that && works after EOF
 	fi
 
+	##########
+
 	som_vcf_ss=$out_dir/${sample_name}.som.vcf.gz
 	germ_vcf_ss=$out_dir/${sample_name}.germ.vcf.gz
 	if [[ $skip_to_step -le 2 ]]; then 
 		echo -e "\n#========= Filter vcfs for gene coords =========#"
+
 		execJob -i $som_vcf_path -o $som_vcf_ss -p fvS -m 4G -t 0:30:00 \
 		-c "source $filterVcf_sh; filterVcf @INPUT @OUTPUT $genes_bed 'somatic'"
 
 		execJob -i $germ_vcf_path -o $germ_vcf_ss -p fvG -m 4G -t 0:30:00 \
 		-c "source $filterVcf_sh; filterVcf @INPUT @OUTPUT $genes_bed 'germline'"
+
 	fi
 
+	##########
 
 	som_txt_ss=$out_dir/${sample_name}.som.txt.gz
 	germ_txt_ss=$out_dir/${sample_name}.germ.txt.gz
@@ -137,6 +141,7 @@ EOF
 
 	if [[ $skip_to_step -le 3 ]]; then
 		echo -e "\n#========= Extract relevant vcf fields into txt =========#"
+
 		execJob -i $som_vcf_ss -o $som_txt_ss -p xvfS -w fvS_${sample_name}.job -m 4G -t 0:20:00 \
 		-c "source $extractVcfFields_sh; extractVcfFields @INPUT @OUTPUT $xvfS_mode"
 
@@ -144,6 +149,7 @@ EOF
 		-c "source $extractVcfFields_sh; extractVcfFields @INPUT @OUTPUT $xvfG_mode" 
 	fi
 
+ 	##########
 
 	varsig_dir=$out_dir/varsig/; mkdir -p $varsig_dir
 	
@@ -151,35 +157,30 @@ EOF
 	clinsig_germ_txt=$out_dir/varsig/clinsig_germ.txt.gz
 	if [[ $skip_to_step -le 4 ]]; then
 	 	echo -e "\n#========= ClinVar/ENIGMA annotation =========#"
-	 	execJob -i $som_txt_ss -o $clinsig_som_txt -p gvsS -w xvfS_${sample_name}.job -m 1G -t 0:10:00 \
-	 	-c "$getClinSig_py -i @INPUT -o @OUTPUT"
+		 
+		execJob -i $som_txt_ss -o $clinsig_som_txt -p gvsS -w xvfS_${sample_name}.job -m 1G -t 0:10:00 \
+		-c "$getClinSig_py -i @INPUT -o @OUTPUT"
 		
 	 	execJob -i $germ_txt_ss -o $clinsig_germ_txt -p gvsG -w xvfG_${sample_name}.job -m 1G -t 1:00:00 \
 	 	-c "$getClinSig_py -i @INPUT -o @OUTPUT"
 	fi
-
-	# hotspots_som_txt=$out_dir/varsig/hotspots_som.txt.gz
-	# hotspots_germ_txt=$out_dir/varsig/hotspots_germ.txt.gz
-	# if [[ $skip_to_step -le 5 ]]; then
-	# 	echo -e "\n#========= Hotspot annotation =========#"
-	# 	execJob -i $som_txt_ss -o $hotspots_som_txt -p ghS -w xvfS_${sample_name}.job -t 1:00:00 \
-	# 	-c "$detIsHotspotMut_py -i @INPUT -o @OUTPUT"
-
-	# 	execJob -i $germ_txt_ss -o $hotspots_germ_txt -p ghG -w xvfG_${sample_name}.job -t 3:00:00 \
-	# 	-c "$detIsHotspotMut_py -i @INPUT -o @OUTPUT"
-	# fi
 	
+	##########
+
 	som_varsig_txt=$varsig_dir/${sample_name}_varsigs_som.txt.gz
 	germ_varsig_txt=$varsig_dir/${sample_name}_varsigs_germ.txt.gz
 	if [[ $skip_to_step -le 6 ]]; then
 		echo -e "\n#=========Merge variant significance with variant txt =========#"
+
+		
 		execJob -o $som_varsig_txt -p mvsS -w "gvsS_${sample_name}.job" -c \
 		"paste <(zcat $som_txt_ss) <(zcat $clinsig_som_txt) | gzip -c > $som_varsig_txt"
-
+		
 		execJob -o $germ_varsig_txt -p mvsG -w "gvsG_${sample_name}.job" -c \
 		"paste <(zcat $germ_txt_ss) <(zcat $clinsig_germ_txt) | gzip -c > $germ_varsig_txt"
 	fi
 
+	##########
 	
 	if [[ $skip_to_step -le 7 ]]; then
 		echo -e "\n#========= Determine gene statuses =========#"
