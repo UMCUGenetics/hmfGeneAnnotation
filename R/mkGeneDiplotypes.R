@@ -118,6 +118,11 @@ mkGeneDiplotypesCnvMut <- function(mut.profile.cnv, mut.profile.mut, mut.origin,
          ## Variant effect
          out$a1 <- out$a2 <- df_cnv$cnv_eff
          
+         ## Chrom / pos
+         out$a1.chrom <- out$a2.chrom <- df_cnv$chrom
+         out$a1.pos <- df_cnv$start
+         out$a2.pos <- df_cnv$end
+         
          out <- within(out,{
             a1.max_score_origin <- a2.max_score_origin <- 'cnv'
             #a1.origin <- a2.origin <- 'cnv'
