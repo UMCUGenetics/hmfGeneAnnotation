@@ -3,250 +3,171 @@
 ROOT_DIR=/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/
 source $ROOT_DIR/loadPaths.sh
 
-#========= Main =========#
-pipeline (){
-	
-	#--------- Arguments ---------#
-	debug=0
-	skip_to_step=0
-	xvf_ignore_type=0
-	dgs_ini_path=''
+# #========= Args =========#
+# DEBUG=false
+# ## GENES_BED already has a default path from loadPaths.sh
 
-	while getopts 'o:b:n:c:g:s:t:i:k:d:' arg; do
-	  case "${arg}" in
-	  	o) out_dir=${OPTARG} ;;
-	  	b) genes_bed=${OPTARG} ;;
-		n) sample_name=${OPTARG} ;;
-		c) gene_cnv_path=${OPTARG} ;;
-		g) germ_vcf_path=${OPTARG} ;;
-		s) som_vcf_path=${OPTARG} ;;
-		t) xvf_ignore_type=${OPTARG} ;;
-		i) dgs_ini_path=${OPTARG} ;;
-		k) skip_to_step=${OPTARG} ;;
-		d) debug=${OPTARG} ;;
-	    *) printf "Usage: ...\n"; exit 1 ;;
-	  esac
-	done
-	
-	mkdir -p $out_dir
+# while [[ $# -gt 0 ]]
+# do
+# key="$1"
+# case $key in
+# 	-o|--out_dir)
+# 	OUT_DIR="$2"; shift; shift;;
 
-	OPTIND=1 ## Reset getopts
+# 	-n|--sample_name)
+# 	SAMPLE_NAME="$2"; shift; shift;;
 
-	## Make job and log dirs
-	job_dir=$out_dir/jobs/; mkdir -p $job_dir; cd $job_dir
-	log_dir=$out_dir/logs/; mkdir -p $log_dir
+# 	-c|--gene_cnv)
+# 	GENE_CNV="$2"; shift; shift;;
 
-	#--------- Job submitter ---------#
-	execJob (){		
-		## Default values
-		run_time='1:00:00'
-		memory='1G'
+# 	-s|--som_vcf)
+# 	SOM_VCF="$2"; shift; shift;;
 
-		## Parse args
-		while getopts 'i:o:p:c:t:m:w:' arg; do
-		  case "${arg}" in
-		  	i) input=${OPTARG} ;;
-			o) output=${OPTARG} ;;
-		  	p) job_prefix=${OPTARG} ;;
-			c) command=${OPTARG} ;;
-			t) run_time=${OPTARG} ;;
-			m) memory=${OPTARG} ;;
-			w) wait_job=${OPTARG} ;;
-		    *) printf "Usage: ...\n"; exit 1 ;;
-		  esac
-		done
+# 	-g|--germ_vcf)
+# 	GERM_VCF="$2"; shift; shift;;
 
-		## Sanity checks
-		# if [[ -z $input ]]; then echo 'Warning: No input file was specified'; fi
-		# if [[ -z $output ]]; then echo 'Warning: No output file was specified'; fi
-		
-		if [[ -z $command ]]; then echo 'Error: Please specify bash command'; return 1; fi
-		if [[ -z $job_prefix ]]; then echo 'Error: Please specify job prefix'; return 1; fi
+# 	-b|--genes_bed)
+# 	GENES_BED="$2"; shift; shift;;
 
-		job_file=$job_dir/${job_prefix}_${sample_name}.job
-		done_file=$log_dir/${job_prefix}.done
+# 	-i|--dgs_ini)
+# 	DGS_INI="$2"; shift; shift;;
 
-		## Submit
-		if [[ ( -f $output || -d $output ) && -f $done_file ]]; then
-			echo "SKIPPING: $(basename $job_file). $(basename $output) and $(basename $done_file) exist"
-		else
-			## Print strings to job
-			echo "#!/bin/bash" > $job_file
-			echo -e "$command && touch $done_file" >> $job_file
+# 	--default)
+# 	DEBUG=true; shift;;
+# 	*)    # unknown option
 
-			## Replace INPUT/OUTPUT with real paths. 
-			sed -i "s|@INPUT|$input|g" $job_file
-			sed -i "s|@OUTPUT|$output|g" $job_file
-			
-			if [[ $debug -eq 1 ]]; then 
-				echo "RUNNING: $(basename $job_file)"
-				sh $job_file
-			else 
-				qsub -S /bin/bash -cwd -l h_rt=$run_time -l h_vmem=$memory -hold_jid $wait_job \
-				-N $(basename $job_file) $job_file
-			fi
-		fi
-
-		## Reset getopts
-		OPTIND=1
-	}
-
-	#--------- Main ---------#
-	#purity_out=$out_dir/${sample_name}.purple.purity
-	gene_cnv_ss=$out_dir/${sample_name}.purple.gene.cnv
-
-	if [[ $skip_to_step -le 1 ]]; then
-		echo -e "\n#========= Subset gene cnv =========#"
-		# if [[ ! -f $purity_out ]]; then	
-		# 	echo 'Copying purple purity file'; cp $purity_path $purity_out
-		# else
-		# 	echo 'SKIPPING: Copying purple purity file'
-		# fi
-		
-		execJob -i $gene_cnv_path -o $gene_cnv_ss -p ssgc -c \
-"{ 
-guixr load-profile ~/.guix-profile --<<EOF
-Rscript $subsetGeneCnv_R @INPUT @OUTPUT $genes_bed
-EOF
-}" ## Braces are required so that && works after EOF
-	fi
-
-	##########
-
-	som_vcf_ss=$out_dir/${sample_name}.som.vcf.gz
-	germ_vcf_ss=$out_dir/${sample_name}.germ.vcf.gz
-	if [[ $skip_to_step -le 2 ]]; then 
-		echo -e "\n#========= Filter vcfs for gene coords =========#"
-
-		execJob -i $som_vcf_path -o $som_vcf_ss -p fvS -m 4G -t 0:30:00 \
-		-c "source $filterVcf_sh; filterVcf @INPUT @OUTPUT $genes_bed 'somatic'"
-
-		execJob -i $germ_vcf_path -o $germ_vcf_ss -p fvG -m 4G -t 0:30:00 \
-		-c "source $filterVcf_sh; filterVcf @INPUT @OUTPUT $genes_bed 'germline'"
-
-	fi
-
-	##########
-
-	som_txt_ss=$out_dir/${sample_name}.som.txt.gz
-	germ_txt_ss=$out_dir/${sample_name}.germ.txt.gz
-	
-	if [[ $xvf_ignore_type -eq 1 ]]; then
-		xvfS_mode='ignore'
-		xvfG_mode='ignore'
-	else
-		xvfS_mode='somatic'
-		xvfG_mode='germline'
-	fi
-
-	if [[ $skip_to_step -le 3 ]]; then
-		echo -e "\n#========= Extract relevant vcf fields into txt =========#"
-
-		execJob -i $som_vcf_ss -o $som_txt_ss -p xvfS -w fvS_${sample_name}.job -m 4G -t 0:20:00 \
-		-c "source $extractVcfFields_sh; extractVcfFields @INPUT @OUTPUT $xvfS_mode"
-
-		execJob -i $germ_vcf_ss -o $germ_txt_ss -p xvfG -w fvG_${sample_name}.job -m 4G -t 0:20:00 \
-		-c "source $extractVcfFields_sh; extractVcfFields @INPUT @OUTPUT $xvfG_mode" 
-	fi
-
- 	##########
-
-	varsig_dir=$out_dir/varsig/; mkdir -p $varsig_dir
-	
-	clinsig_som_txt=$out_dir/varsig/clinsig_som.txt.gz
-	clinsig_germ_txt=$out_dir/varsig/clinsig_germ.txt.gz
-	if [[ $skip_to_step -le 4 ]]; then
-	 	echo -e "\n#========= ClinVar/ENIGMA annotation =========#"
-		 
-		execJob -i $som_txt_ss -o $clinsig_som_txt -p gvsS -w xvfS_${sample_name}.job -m 1G -t 0:10:00 \
-		-c "$getClinSig_py -i @INPUT -o @OUTPUT"
-		
-	 	execJob -i $germ_txt_ss -o $clinsig_germ_txt -p gvsG -w xvfG_${sample_name}.job -m 1G -t 1:00:00 \
-	 	-c "$getClinSig_py -i @INPUT -o @OUTPUT"
-	fi
-	
-	##########
-
-	som_varsig_txt=$varsig_dir/${sample_name}_varsigs_som.txt.gz
-	germ_varsig_txt=$varsig_dir/${sample_name}_varsigs_germ.txt.gz
-	if [[ $skip_to_step -le 6 ]]; then
-		echo -e "\n#=========Merge variant significance with variant txt =========#"
-
-		
-		execJob -o $som_varsig_txt -p mvsS -w "gvsS_${sample_name}.job" -c \
-		"paste <(zcat $som_txt_ss) <(zcat $clinsig_som_txt) | gzip -c > $som_varsig_txt"
-		
-		execJob -o $germ_varsig_txt -p mvsG -w "gvsG_${sample_name}.job" -c \
-		"paste <(zcat $germ_txt_ss) <(zcat $clinsig_germ_txt) | gzip -c > $germ_varsig_txt"
-	fi
-
-	##########
-	
-	if [[ $skip_to_step -le 7 ]]; then
-		echo -e "\n#========= Determine gene statuses =========#"
-		gene_statuses_dir=$out_dir/gene_statuses/; mkdir -p $gene_statuses_dir
-		execJob -p dgs -m 8G \
-		-w "ssgc_${sample_name}.job,mvsS_${sample_name}.job,mvsG_${sample_name}.job" \
-		-o $gene_statuses_dir \
-		-i "$gene_cnv_ss $germ_varsig_txt $som_varsig_txt $purity_out $genes_bed $dgs_ini_path" \
-		-c \
-"{ 
-guixr load-profile ~/.guix-profile --<<EOF
-Rscript $detGeneStatuses_R @OUTPUT @INPUT
-EOF
-}"
-	fi
-
-}
-
-# #========= Exec =========#
-# ## base paths
-# hmf_data_dir=/hpc/cog_bioinf/cuppen/project_data/HMF_data/DR010-update/data/
-
-# base_dir=/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/
-# variants_dir=$base_dir/HMF_update/vcf_subset/
-
-# ## Exec
-# out_dir=/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_update/vcf_subset/CPCT02020386R_CPCT02020386T/
-# #out_dir=/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts/preProcHmfOutput/pipeline_test/
-# sample_name='CPCT02020386R_CPCT02020386T'
-
-# purity_path=$hmf_data_dir/161108_HMFregCPCT_FR12244761_FR13272009_CPCT02020386/CPCT02020386T.purple.purity
-# gene_cnv_path=$hmf_data_dir/161108_HMFregCPCT_FR12244761_FR13272009_CPCT02020386/CPCT02020386T.purple.gene.cnv
-
-# germ_vcf_path=$hmf_data_dir/161108_HMFregCPCT_FR12244761_FR13272009_CPCT02020386/161108_HMFregCPCT_FR12244761_FR13272009_CPCT02020386.filtered_variants_snpEff_snpSift_Cosmicv76_GoNLv5.vcf.gz
-# som_vcf_path=$hmf_data_dir/161108_HMFregCPCT_FR12244761_FR13272009_CPCT02020386/CPCT02020386R_CPCT02020386T_post_processed_v2.2.vcf.gz
-
-# pipeline $out_dir $sample_name $purity_path $gene_cnv_path $germ_vcf_path $som_vcf_path
-
-# #========= Submit manifest =========#
-# hmf_data_dir=/hpc/cog_bioinf/cuppen/project_data/HMF_data/DR010-update/data/
-
-# base_dir=/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/
-# manifest_path=$base_dir/HMF_update/manifest/hmf_file_manifest.txt
-# variants_dir=$base_dir/HMF_update/vcf_subset/
-
-# counter=0
-# cat $manifest_path | while read sample_name sample_dir germ_vcf_name som_vcf_name gene_cnv_name purity_name; do
-# 	counter=$((counter+1))
-
-# 	echo -e "\n########## [$counter] Submitting gene annotation pipeline for $sample_name ##########"
-	
-# 	out_dir=$variants_dir/$sample_name; mkdir -p $out_dir
-
-# 	#--------- inputs ---------#
-# 	bed_path=/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/data/gene_selection/genes.bed
-# 	purity_path=$hmf_data_dir/$sample_dir/$purity_name
-# 	gene_cnv_path=$hmf_data_dir/$sample_dir/$gene_cnv_name
-
-# 	germ_vcf_path=$hmf_data_dir/$sample_dir/$germ_vcf_name
-# 	som_vcf_path=$hmf_data_dir/$sample_dir/$som_vcf_name
-
-# 	#--------- submit ---------#
-# 	pipeline -o $out_dir -b $bed_path -n $sample_name -p $purity_path -c $gene_cnv_path -g $germ_vcf_path -s $som_vcf_path \
-# 	-d 0 -k 7
-
-# 	#if [[ $counter -eq 1 ]]; then break; fi
+# esac
 # done
 
+# if [[ ! -d $OUT_DIR ]]; then
+# 	echo "Error: Parent dir does not exist: $OUT_DIR"
+# 	exit 1
+# fi
+
+#echo $GENES_BED
+
+#========= Init =========#
+## Test args
+DGS_INI=$detGeneStatuses_ini
+
+parent_dir=/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CUPs_classifier_data/gene_ann/
+SAMPLE_NAME=CPCT02010422T
+OUT_DIR=$parent_dir/$SAMPLE_NAME/
+
+som_data_dir=/hpc/cog_bioinf/cuppen/project_data/HMF_data/DR-104/data/somatics/161123_HMFregCPCT_FR12244764_FR13275498_CPCT02010422/
+GENE_CNV=$som_data_dir/CPCT02010422T.purple.cnv.gene.tsv
+SOM_VCF=$som_data_dir/CPCT02010422T.purple.somatic.vcf.gz
+GERM_VCF=/hpc/cog_bioinf/cuppen/project_data/HMF_data/DR-104/data/germline/161123_HMFregCPCT_FR12244764_FR13275498_CPCT02010422/161123_HMFregCPCT_FR12244764_FR13275498_CPCT02010422.annotated.vcf.gz
+
+if [[ ! -d $(dirname $OUT_DIR) ]]; then
+	"Error: Cannot make output dir. Parent dir does not exist: $(dirname $OUT_DIR)"
+	exit 1
+fi
+
+mkdir -p $OUT_DIR
+job_dir=$OUT_DIR/jobs/; mkdir -p $job_dir
+
+jobNameToId (){ 
+	out=$(squeue --noheader --format %i --name $1)
+	if [[ -z $out ]]; then
+		echo 1
+	else
+		echo $out
+	fi
+}
+
+#========= Subset input files =========#
+processing_dir=$OUT_DIR/proc/; mkdir -p $processing_dir
+
+## Output paths
+gene_cnv=$processing_dir/${SAMPLE_NAME}.purple.gene.cnv.txt
+
+som_vcf_ss=$processing_dir/${SAMPLE_NAME}.som.vcf.gz
+som_txt=$processing_dir/${SAMPLE_NAME}.som.txt.gz
+
+germ_vcf_ss=$processing_dir/${SAMPLE_NAME}.germ.vcf.gz
+germ_txt=$processing_dir/${SAMPLE_NAME}.germ.txt.gz
+
+## Make job
+subset_input_job=$job_dir/subsetInput_${SAMPLE_NAME}.job
+subset_input_done=${subset_input_job}.done
+
+if [[ ! -f $subset_input_done ]]; then
+
+echo "#!/bin/bash
+
+guixr load-profile ~/.guix-profile --<<EOF
+
+Rscript $subsetGeneCnv_R $GENE_CNV $gene_cnv $GENES_BED &&
+
+source $filterVcf_sh &&
+filterVcf $SOM_VCF $som_vcf_ss $GENES_BED 'somatic' &&
+filterVcf $GERM_VCF $germ_vcf_ss $GENES_BED 'germline' &&
+
+source $extractVcfFields_sh &&
+extractVcfFields $som_vcf_ss $som_txt &&
+extractVcfFields $germ_vcf_ss $germ_txt &&
+
+touch $subset_input_done
+
+EOF
+" > $subset_input_job
+
+sbatch --time=00:30 --mem=4G \
+--job-name=$(basename $subset_input_job) --output=${subset_input_job}.o \
+$subset_input_job
+
+fi
+
+#========= Annotate variants =========#
+clinsig_som_txt=$processing_dir/clinsig_som.txt.gz
+clinsig_germ_txt=$processing_dir/clinsig_germ.txt.gz
+
+som_txt_ann=$processing_dir/${SAMPLE_NAME}.som.ann.txt.gz
+germ_txt_ann=$processing_dir/${SAMPLE_NAME}.germ.ann.txt.gz
+
+ann_variants_job=$job_dir/annVariants_${SAMPLE_NAME}.job
+ann_variants_done=${ann_variants_job}.done
+
+if [[ ! -f $ann_variants_done ]]; then
+
+echo "#!/bin/bash
+
+$getClinSig_py -i $som_txt -o $clinsig_som_txt &&
+$getClinSig_py -i $germ_txt -o $clinsig_germ_txt &&
+
+paste <(zcat $som_txt) <(zcat $clinsig_som_txt) | gzip -c > $som_txt_ann &&
+paste <(zcat $germ_txt) <(zcat $clinsig_germ_txt) | gzip -c > $germ_txt_ann &&
+
+touch $ann_variants_done
+" > $ann_variants_job
+
+sbatch --time=00:30 --mem=1G \
+--job-name=$(basename $ann_variants_job) --output=${ann_variants_job}.o \
+--dependency=afterany:$(jobNameToId $(basename $subset_input_job)) \
+$ann_variants_job
+
+fi
+
+#========= Determine gene biallelic status =========#
+gene_statuses_dir=$OUT_DIR/gene_statuses/; mkdir -p $gene_statuses_dir
+
+det_gene_statuses_job=$job_dir/detGeneStatuses_${SAMPLE_NAME}.job
+det_gene_statuses_done=${det_gene_statuses_job}.done
+
+if [[ ! -f $det_gene_statuses_done ]]; then
+
+echo "#!/bin/bash
+guixr load-profile ~/.guix-profile --<<EOF
+Rscript $detGeneStatuses_R $gene_statuses_dir $gene_cnv $germ_txt_ann $som_txt_ann $GENES_BED $DGS_INI &&
+touch $det_gene_statuses_done
+EOF
+" > $det_gene_statuses_job
+
+sbatch --time=00:30 --mem=8G \
+--job-name=$(basename $det_gene_statuses_job) --output=${det_gene_statuses_job}.o \
+--dependency=afterany:$(jobNameToId $(basename $ann_variants_job)) \
+$det_gene_statuses_job
+
+fi
 
