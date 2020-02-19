@@ -3,9 +3,6 @@
 library(devtools)
 load_all('/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/')
 
-ROOT_DIR <- '/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/'
-ini_path_default <- paste0(ROOT_DIR, '/R/detGeneStatuses_ini.R')
-
 args <- commandArgs(trailingOnly=T)
 
 detGeneStatuses(
@@ -14,6 +11,6 @@ detGeneStatuses(
    germ.path = args[3],
    som.path = args[4],
    genes.bed.path = args[5],
-   ini.path = if(!is.null(args[6])){ args[6] } else { ini_path_default }
+   ini.path = args[6]
 )
 
