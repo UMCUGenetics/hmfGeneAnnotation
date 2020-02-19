@@ -9,47 +9,25 @@ SNPSIFT=$ROOT_DIR/dep/snpEff/SnpSift.jar
 #========= Data =========#
 GENES_BED=$ROOT_DIR/data/gene_selection/genes.bed
 
-# CLINVAR_DB=$ROOT_DIR/data/variant_significance/clinvar/clinvar_20181217_ss.txt
-# ENIGMA_DB=$ROOT_DIR/data/variant_significance/enigma/enigma_variants_20181221.txt
-
 CLINVAR_DB=$ROOT_DIR/data/variant_significance/clinvar/clinvar_20181217_ss.txt.gz
 ENIGMA_DB=$ROOT_DIR/data/variant_significance/enigma/enigma_variants_20181221.txt.gz
 
-CADD_DB_SNV=/hpc/cog_bioinf/common_dbs/CADD/whole_genome_SNVs_inclAnno.tsv.gz
-SCAP_DB=$ROOT_DIR/data/variant_significance/SCAP/scap_v1_0.sorted.txt.gz
-MCAP_DB=$ROOT_DIR/data/variant_significance/MCAP/mcap_v1_3.txt.gz
-GNOMAD_DB_DIR=/hpc/cog_bioinf/common_dbs/GNOMAD/v2.1/
-
-HOTSPOTS_DB=$ROOT_DIR/data/variant_significance/HMF_hotspots/KnownHotspots.tsv.gz
-
 #========= Scripts =========#
-## subset databases
-subsetCadd_sh=$ROOT_DIR/scripts/prepDb/subsetCadd.sh
+#--------- preProcHmfOutput ---------#
+subsetInputFiles_dir=$ROOT_DIR/scripts/subsetInputFiles/
 
-## preProcHmfOutput
-preProcHmfOutput_dir=$ROOT_DIR/scripts/preProcHmfOutput/
+extractVcfFields_sh=$subsetInputFiles_dir/extractVcfFields.sh
+filterVcf_sh=$subsetInputFiles_dir/filterVcf.sh
+subsetGeneCnv_R=$subsetInputFiles_dir/subsetGeneCnv.R
 
-extractVcfFields_sh=$preProcHmfOutput_dir/extractVcfFields.sh
-filterVcf_sh=$preProcHmfOutput_dir/filterVcf.sh
-procPurpleOutput_sh=$preProcHmfOutput_dir/procPurpleOutput.sh
-subsetGeneCnv_R=$preProcHmfOutput_dir/subsetGeneCnv.R
+#--------- getAnnotations ---------#
+annotateVariants_dir=$ROOT_DIR/scripts/annotateVariants/
 
-## getAnnotations
-getAnnotations_dir=$ROOT_DIR/scripts/getAnnotations
+addSigAnn_sh=$annotateVariants_dir/addSigAnn.sh
+getClinSig_sh=$annotateVariants_dir/getClinSig.sh
+getClinSig_py=$annotateVariants_dir/getClinSig.py
 
-addSigAnn_sh=$getAnnotations_dir/addSigAnn.sh
-
-getClinSig_sh=$getAnnotations_dir/getClinSig.sh
-detIsHotspotMut_sh=$getAnnotations_dir/detIsHotspotMut.sh
-
-getClinSig_py=$getAnnotations_dir/getClinSig.py
-detIsHotspotMut_py=$getAnnotations_dir/detIsHotspotMut.py
-
-getCaddAnn_py=$getAnnotations_dir/getCaddAnn.py
-getCapAnn_py=$getAnnotations_dir/getCapAnn.py
-getGnomadAnn_py=$getAnnotations_dir/getGnomadAnn.py
-
-## annotateGenes
-annotateGenesExec_sh=$ROOT_DIR/scripts/annotateGenes/annotateGenesExec.sh
-detGeneStatuses_R=$ROOT_DIR//scripts/pipeline/detGeneStatuses_exec.R
+#--------- Combine all data ---------#
+detGeneStatuses_R=$ROOT_DIR/scripts/pipeline/detGeneStatuses_exec.R
+detGeneStatuses_ini=$ROOT_DIR/scripts/pipeline/detGeneStatuses_ini.R
 
