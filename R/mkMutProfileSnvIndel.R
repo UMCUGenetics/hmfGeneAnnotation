@@ -34,7 +34,7 @@ mkMutProfileSnvIndel <- function(
    #if(!(mode %in% c('germline','somatic'))){ stop("Please specify mode: 'germline', 'somatic'") }
    #if(length(tumor.purity) != 1){ stop("tumor.purity must be a single numeric value") }
    
-   #df.snv.indel=input$germ
+   #df.snv.indel=input$som
 
    #--------- Score annotations ---------#
    if(verbose){ message('Getting snpEff scores...') }
@@ -60,7 +60,6 @@ mkMutProfileSnvIndel <- function(
    
    #--------- Calculate max score and which database it came from ---------#
    if(verbose){ message('Calculating max scores...') }
-   
    
    getMaxSigScores <- function(df){
       db_names <- sapply(strsplit(colnames(df),'_'), `[`, 1, USE.NAMES=F)

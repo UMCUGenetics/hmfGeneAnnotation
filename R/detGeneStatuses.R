@@ -16,7 +16,6 @@ detGeneStatuses <- function(
    cnv.path, 
    germ.path, 
    som.path, 
-   #purity.path, 
    genes.bed.path, 
    ini.path
 ){
@@ -40,8 +39,8 @@ detGeneStatuses <- function(
    # out.dir=paste0(in_dir,'/gene_statuses/')
    # ini.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/scripts/annotate_genes/run_pipeline/detGeneStatuses_ini.R'
    
-   # sample_name='SBT-3.1_organoid'
-   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD_data/Ovarian_Organoids_Chris/gene_ann//',sample_name)
+   # sample_name='NASH1_CLONE5'
+   # in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/Liver_footprint_data/gene_ann/',sample_name)
    # out.dir=paste0(in_dir,'/gene_statuses/')
    
    # input_paths <- list(
@@ -58,12 +57,12 @@ detGeneStatuses <- function(
    
    ## Real
    source(ini.path)
-   input <- list(
-      cnv = read.delim(cnv.path),
-      germ = read.delim(germ.path),
-      som = read.delim(som.path)
-   )
    
+   input <- list()
+   input$cnv <- read.delim(cnv.path)
+   input$germ <- read.delim(germ.path)
+   input$som <- read.delim(som.path)
+
    #genes.bed.path <- paste0(ROOT_DIR, '/data/gene_selection/genes.bed')
    #genes.bed.path <- '/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/Rotterdam_Patient_Samples/scripts/annotate_genes/genes.bed'
    genes_bed <- read.delim(genes.bed.path, check.names=F)
@@ -192,11 +191,11 @@ detGeneStatuses <- function(
    # subset(gene_diplotypes, hgnc_symbol %in% c('BRCA1','BRCA2'))
    # table(gene_diplotypes_max$a1)
    
-   #========= Determine reading frame/add indel info =========#
-   gene_diplotypes_max <- cbind(
-      gene_diplotypes_max,
-      detReadingFrame(gene_diplotypes_max, mut_profile$germ, mut_profile$som)
-   )
+   # #========= Determine reading frame/add indel info =========#
+   # gene_diplotypes_max <- cbind(
+   #    gene_diplotypes_max,
+   #    detReadingFrame(gene_diplotypes_max, mut_profile$germ, mut_profile$som)
+   # )
    
    #========= Export diplotype tables =========#
    if(OPTIONS$verbose){ message('\n## Exporting gene diplotype tables...') }
@@ -213,37 +212,3 @@ detGeneStatuses <- function(
    )
    
 }
-
-# sample_name='CPCT02070023R_CPCT02070023TII'
-# in_dir=paste0('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/HMF_update/vcf_subset/',sample_name)
-# 
-# out.dir=paste0(in_dir,'/gene_statuses/')
-# 
-# input_paths <- list(
-#    cnv = paste0(in_dir,'/',sample_name,'.purple.gene.cnv'),
-#    germ = paste0(in_dir,'/varsig/',sample_name,'_varsigs_germ.txt.gz'),
-#    som = paste0(in_dir,'/varsig/',sample_name,'_varsigs_som.txt.gz'),
-#    purity = paste0(in_dir,'/',sample_name,'.purple.purity')
-# )
-# 
-# genes.bed.path <- paste0(ROOT_DIR, '/data/gene_selection/genes.bed')
-# 
-# detGeneStatuses(
-#    out.dir,
-#    input_paths$cnv,
-#    input_paths$germ,
-#    input_paths$som,
-#    input_paths$purity,
-#    genes.bed.path
-# )
-
-
-
-
-
-
-
-
-
-
-

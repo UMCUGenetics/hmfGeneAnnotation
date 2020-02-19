@@ -1,4 +1,4 @@
-#library(biomaRt)
+library(biomaRt)
 library(readxl)
 library(stringr)
 options(stringsAsFactors = F)
