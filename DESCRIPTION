@@ -1,12 +1,17 @@
 Package: hmfGeneAnnotation
 Type: Package
-Title: Determines the biallelic status of genes
-Version: 0.1.0
+Title: Determines gene amplifications and biallelic losses from HMF pipeline output
+Version: 2.00.00
 Author: Luan Nguyen
 Maintainer: The package maintainer <n.l.nguyen-2@umcutrecht.nl>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: Determines gene amplifications and biallelic losses from HMF pipeline output
 License: MIT
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.2
+Depends:
+	seqminer
+Suggests:
+	Rsamtools,
+	biomaRt,
+	naturalsort
