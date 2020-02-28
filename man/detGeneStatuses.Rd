@@ -2,29 +2,38 @@
 % Please edit documentation in R/detGeneStatuses.R
 \name{detGeneStatuses}
 \alias{detGeneStatuses}
-\title{Determine gene biallelic status}
+\title{Determine gene amplifications and biallelic losses}
 \usage{
-detGeneStatuses(out.dir, cnv.path, germ.path, som.path, purity.path,
-  genes.bed.path, ini.path)
+detGeneStatuses(
+  out.dir,
+  hmf.pl.output.paths = c(germ_vcf = "", som_vcf = "", gene_cnv = "", cnv = ""),
+  sample.name,
+  bed.file = BED_FILE,
+  java.path = JAVA_PATH,
+  snpsift.path = SNPSIFT_PATH,
+  verbose = T
+)
 }
 \arguments{
-\item{out.dir}{Directory to write output}
+\item{out.dir}{Path to output dir}
 
-\item{cnv.path}{Purple gene CNV table}
+\item{hmf.pl.output.paths}{A list or vector supplying the path output files from the HMF pipeline.}
 
-\item{germ.path}{Germline variant table}
+\item{sample.name}{Name of the sample
+This list should be in the form c(germ_vcf='', som_vcf='', gene_cnv='', cnv='')}
 
-\item{som.path}{Somatic variant table}
+\item{bed.file}{Path to the bed file containing the genes of interest. This bed file should also 
+contain the column ensembl_gene_id}
 
-\item{purity.path}{Purple purity table}
+\item{java.path}{Path the the java binary}
 
-\item{genes.bed.path}{Bed file of gene selection}
+\item{snpsift.path}{Path to the SnpSift jar}
 
-\item{ini.path}{An R script that provides the settings for this detGeneStatuses.}
+\item{verbose}{Show progress messages?}
 }
 \value{
-Write the tables biall_mut_profile_*, gene_diplotypes, and gene_diplotypes_max to out.dir
+Writes a diplotypes table to the output dir
 }
 \description{
-Determine gene biallelic status
+Determine gene amplifications and biallelic losses
 }

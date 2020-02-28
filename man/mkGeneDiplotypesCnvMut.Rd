@@ -4,8 +4,12 @@
 \alias{mkGeneDiplotypesCnvMut}
 \title{Merge cnv and germ/som mut profiles into a table the describes the events of allele 1 and 2}
 \usage{
-mkGeneDiplotypesCnvMut(mut.profile.cnv, mut.profile.mut, mut.origin,
-  verbose = T)
+mkGeneDiplotypesCnvMut(
+  mut.profile.cnv,
+  mut.profile.mut,
+  mut.origin,
+  verbose = T
+)
 }
 \arguments{
 \item{mut.profile.cnv}{CNV mut profile table}
