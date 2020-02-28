@@ -17,7 +17,7 @@ BIALLELE_COLS <- list(
       a1.chrom='none',
       a1.pos=0,
       a1.hgvs_c='none',
-      a1='none',
+      a1.eff='none',
       a1.max_score=0,
       a1.max_score_origin='none'
    ),
@@ -26,7 +26,7 @@ BIALLELE_COLS <- list(
       a2.chrom='none',
       a2.pos=0,
       a2.hgvs_c='none',
-      a2='none',
+      a2.eff='none',
       a2.max_score=0,
       a2.max_score_origin='none'
    )
@@ -57,7 +57,7 @@ getBialleleCols <- function(groups=NULL, as=NULL){
 #' @return A table the describes the events of allele 1 and 2
 #' @export
 mkGeneDiplotypesCnvMut <- function(mut.profile.cnv, mut.profile.mut, mut.origin, verbose=T){
-   # mut.profile.cnv=mut_profile$cnv
+   # mut.profile.cnv=mut_profile$gene_cnv
    # mut.profile.mut=mut_profile$som
    # mut.origin='som'
    # mut.profile.mut=mut_profile$germ
@@ -107,7 +107,7 @@ mkGeneDiplotypesCnvMut <- function(mut.profile.cnv, mut.profile.mut, mut.origin,
       }
       
       #========= Full gene loss / truncation cases =========#
-      if( nrow(df_cnv)!=0 && df_cnv$cnv_eff %in% c('full_gene_loss','trunc') ){
+      if( nrow(df_cnv)!=0 && df_cnv$cn_loss_type %in% c('deep_deletion','trunc') ){
          ## df_cnv should only ever have one row
          out <- getBialleleCols(as='data.frame')
          
@@ -116,7 +116,7 @@ mkGeneDiplotypesCnvMut <- function(mut.profile.cnv, mut.profile.mut, mut.origin,
          out$a2.max_score <- df_cnv$a2.score
          
          ## Variant effect
-         out$a1 <- out$a2 <- df_cnv$cnv_eff
+         out$a1.eff <- out$a2.eff <- df_cnv$cn_loss_type
          
          ## Chrom / pos
          out$a1.chrom <- out$a2.chrom <- df_cnv$chrom
@@ -145,7 +145,7 @@ mkGeneDiplotypesCnvMut <- function(mut.profile.cnv, mut.profile.mut, mut.origin,
       if(nrow(df_cnv)!=0){
          out_cnv$a1.chrom <- df_cnv$chrom
          out_cnv$a1.max_score <- df_cnv$a1.score
-         out_cnv$a1 <- df_cnv$cnv_eff
+         out_cnv$a1.eff <- df_cnv$cn_loss_type
          out_cnv$a1.max_score_origin <- 'cnv'
       }
       
@@ -174,7 +174,7 @@ mkGeneDiplotypesCnvMut <- function(mut.profile.cnv, mut.profile.mut, mut.origin,
          allele_cols_out <- getBialleleCols('allele2',as='names')
          
          allele_cols_source <- allele_cols_out
-         allele_cols_source[allele_cols_source=='a2'] <- 'snpeff_eff'
+         allele_cols_source[allele_cols_source=='a2.eff'] <- 'snpeff_eff'
          allele_cols_source <- gsub('a2[.]','',allele_cols_source)
          
          out_mut[allele_cols_out] <- df_mut[allele_cols_source]
@@ -218,7 +218,6 @@ mkGeneDiplotypesCnvMut <- function(mut.profile.cnv, mut.profile.mut, mut.origin,
 #'
 #' @return A table the describes the events of allele 1 and 2
 #' @export
-
 mkGeneDiplotypesMutMut <- function(
    mut.profile.mut1, mut.profile.mut2, 
    diplotype.origin, min.biall.score=c(3,3),
@@ -240,14 +239,14 @@ mkGeneDiplotypesMutMut <- function(
    
    sel_cols$a1_source <- (function(){
       v <- sel_cols$a1_out
-      v[v=='a1'] <- 'snpeff_eff'
+      v[v=='a1.eff'] <- 'snpeff_eff'
       v <- gsub('a1[.]','',v)
       return(v)
    })()
    
    sel_cols$a2_source <- (function(){
       v <- sel_cols$a2_out
-      v[v=='a2'] <- 'snpeff_eff'
+      v[v=='a2.eff'] <- 'snpeff_eff'
       v <- gsub('a2[.]','',v)
       return(v)
    })()
@@ -346,42 +345,6 @@ mkGeneDiplotypesMutMut <- function(
    return(out)
 }
 
-####################################################################################################
-detHitType <- function(diplotypes, min.a1.score=1, min.a2.score=1){
-   
-   diplotypes_ss <- as.matrix(
-      diplotypes[ c('a1','a2','a1.max_score','a2.max_score','diplotype_origin') ]
-   )
-   rownames(diplotypes_ss) <- NULL
-   
-   apply(diplotypes_ss, 1, function(i){
-      a1 <- i[1]
-      a2 <- i[2]
-      a1.max_score <- i[3]
-      a2.max_score <- i[4]
-      diplotype_origin <- i[5]
-      
-      if(a1 %in% c('full_gene_loss','trunc')){
-         a1
-      } 
-      
-      else if(a1=='loh'){
-         if(diplotype_origin=='cnv_germ' & a2.max_score>=min.a2.score){ 'loh+germ' }
-         else if(diplotype_origin=='cnv_som' & a2.max_score>=min.a2.score){ 'loh+som' }
-         else { 'loh_only' }
-      } 
-      
-      else if(
-         diplotype_origin %in% c('germ_som','som_som') 
-         & a1.max_score>=min.a1.score & a2.max_score >=min.a2.score
-      ){
-         'germ+som'
-      } 
-      
-      else {
-         'none'
-      }
-   })
-}
+
 
 
