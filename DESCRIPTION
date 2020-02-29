@@ -1,7 +1,7 @@
 Package: hmfGeneAnnotation
 Type: Package
 Title: Determines gene amplifications and biallelic losses from HMF pipeline output
-Version: 2.00.00
+Version: 2.00
 Author: Luan Nguyen
 Maintainer: The package maintainer <n.l.nguyen-2@umcutrecht.nl>
 Description: Determines gene amplifications and biallelic losses from HMF pipeline output
