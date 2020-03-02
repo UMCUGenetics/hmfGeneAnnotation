@@ -18,8 +18,8 @@ variant calling pipeline.
 ### Gene list
 
   - Bed file with the chromosome, start/end genome coordinates, and
-    ENSEMBL gene IDs of the desired genes. Column names should be as
-    shown below.
+    ENSEMBL gene IDs of the desired genes. Below are the first few lines
+    of the default bed file.
 
 <!-- end list -->
 
@@ -41,6 +41,8 @@ head(default_bed)
 
 ## Usage
 
+First install the package and its dependencies.
+
 ``` r
 ## Install dependencies
 install.packages('seqminer')
@@ -48,8 +50,16 @@ install.packages('seqminer')
 ## Install hmfGeneAnnotation
 install.packages('devtools'); library(devtools)
 install_github('https://github.com/UMCUGenetics/hmfGeneAnnotation/')
+```
 
-## Run main function
+`detGeneStatuses()` is the main function of the package. The user may
+specify the path to a `bed.file`, but if unspecified, the one included
+in this package will be used. The user may also specify the path to the
+java binary (`java.path`; default is the one installed on the system),
+as well as the path to the SnpSift jar (`snpsift.path`; default is the
+jar included at `inst/dep/SnpSift.jar`).
+
+``` r
 detGeneStatuses(
    out.dir='/path/to/write/output/files/', 
    hmf.pl.output.paths=c(
@@ -59,6 +69,12 @@ detGeneStatuses(
      cnv='/path/to/purple.cnv.somatic.tsv'
    ), 
    sample.name='sample_name',
+   
+   ## Optional arguments
+   bed.file='/path/to/bed/file', 
+   java.path='/path/to/java/binary', 
+   snpsift.path='/path/to/snpsift/jar',
+   
    verbose=T
 )
 ```
