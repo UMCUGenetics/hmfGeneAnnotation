@@ -9,6 +9,9 @@ calcChromArmPloidies(
   out.file = NULL,
   min.rel.cum.segment.size = 0.5,
   max.rel.cum.segment.size.diff = 0.1,
+  chrom.arm.split.method = "hmf",
+  centromere.positions.path = CENTROMERE_POSITIONS,
+  one.armed.chroms = ONE_ARMED_CHROMS,
   chrom.arm.names = "auto",
   verbose = T
 )
@@ -27,6 +30,12 @@ CN categories covering 0.40 and 0.31 of a chrom arm are considered equally contr
 these CN categories have similar cumulative segment size as the one with the highest, if one of 
 these have the same CN as the genome CN, return the genome CN. Otherwise, simply return the one 
 with the highest segment support (as is done above).}
+
+\item{chrom.arm.split.method}{Which method to determine the chromosome arm coords? If 'hmf', uses
+'method' column from purple cnv file to determine centromere positions (i.e. p/q arm split point).
+If 'gap', uses the a (processed) gap.txt.gz table from the UCSC genome browser to determine
+centromere positions. These 2 methods should in theory be identical, unless the HMF pipeline code
+changes.}
 
 \item{chrom.arm.names}{A character vector in the form c('1p','1q','2p','2q', ...). The default 
 'auto' means that the human chromosome arm names are used. Note that chroms 13, 14, 15, 21, 22

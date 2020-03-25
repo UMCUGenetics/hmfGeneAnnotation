@@ -8,7 +8,6 @@ mkMutProfileGeneCnv(
   gene.cnv,
   arm.ploidies,
   min.cn.arm.ploidy.diff = 0.8,
-  amp.bins = c(0, 1.5, 2.5, 3.5, 7.5, Inf),
   deep.del.max.max.copy.number = 0.3,
   trunc.max.min.copy.number = 0.3,
   loh.max.min.minor.allele.ploidy = 0.2,
@@ -24,8 +23,6 @@ mkMutProfileGeneCnv(
 
 \item{min.cn.arm.ploidy.diff}{Minimum difference between min_copy_number and arm_ploidy before a
 gain is considered to have happened}
-
-\item{amp.bins}{Breaks for the bin amplification ratios}
 
 \item{deep.del.max.max.copy.number}{The max max_copy_number for a gene to be considered to 
 be completely lost (deep deletion)}

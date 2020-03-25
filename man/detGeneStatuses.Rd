@@ -6,18 +6,20 @@
 \usage{
 detGeneStatuses(
   out.dir,
-  hmf.pl.output.paths = c(germ_vcf = "", som_vcf = "", gene_cnv = "", cnv = ""),
+  input.file.paths = c(germ_vcf = "", som_vcf = "", gene_cnv = "", cnv = ""),
   sample.name,
   bed.file = BED_FILE,
   java.path = JAVA_PATH,
   snpsift.path = SNPSIFT_PATH,
+  chrom.arm.split.method = "hmf",
+  do.snpeff.ann = F,
   verbose = T
 )
 }
 \arguments{
 \item{out.dir}{Path to output dir}
 
-\item{hmf.pl.output.paths}{A list or vector supplying the path output files from the HMF pipeline.}
+\item{input.file.paths}{A list or vector supplying the path output files from the HMF pipeline.}
 
 \item{sample.name}{Name of the sample
 This list should be in the form c(germ_vcf='', som_vcf='', gene_cnv='', cnv='')}
@@ -28,6 +30,11 @@ contain the column ensembl_gene_id}
 \item{java.path}{Path the the java binary}
 
 \item{snpsift.path}{Path to the SnpSift jar}
+
+\item{chrom.arm.split.method}{Can be 'hmf' or 'gap'. Refer to documentation for 
+calcChromArmPloidies().}
+
+\item{do.snpeff.ann}{Annotate SNV/indels variant type with snpeff?}
 
 \item{verbose}{Show progress messages?}
 }

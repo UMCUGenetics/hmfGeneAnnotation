@@ -7,7 +7,7 @@
 filterVcf(
   vcf.file,
   out.file,
-  mode,
+  mode = NULL,
   bed.file = BED_FILE,
   java.path = JAVA_PATH,
   snpsift.path = SNPSIFT_PATH
