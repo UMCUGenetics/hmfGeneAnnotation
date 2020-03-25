@@ -18,6 +18,11 @@
 #' @param chrom.arm.names A character vector in the form c('1p','1q','2p','2q', ...). The default 
 #' 'auto' means that the human chromosome arm names are used. Note that chroms 13, 14, 15, 21, 22
 #' are considered to only have the long (i.e. q) arm.
+#' @param chrom.arm.split.method Which method to determine the chromosome arm coords? If 'hmf', uses
+#' 'method' column from purple cnv file to determine centromere positions (i.e. p/q arm split point).
+#' If 'gap', uses the a (processed) gap.txt.gz table from the UCSC genome browser to determine
+#' centromere positions. These 2 methods should in theory be identical, unless the HMF pipeline code
+#' changes.
 #' @param verbose Show progress messages?
 #'
 #' @return A named vector of chrom arm copy numbers, or specified writes a table to out.file if 
@@ -27,70 +32,102 @@
 #' @examples
 calcChromArmPloidies <- function(
    purple.cnv.file, out.file=NULL, 
-   min.rel.cum.segment.size=0.5, max.rel.cum.segment.size.diff=0.1, 
-   chrom.arm.names='auto', verbose=T
+   min.rel.cum.segment.size=0.5, max.rel.cum.segment.size.diff=0.1,
+   chrom.arm.split.method='hmf', 
+   centromere.positions.path=CENTROMERE_POSITIONS, one.armed.chroms=ONE_ARMED_CHROMS,
+   chrom.arm.names='auto', 
+   verbose=T
 ){
    
-   #purple.cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/ploidy_estimator/data//CPCT02210082T.purple.cnv'
-   #purple.cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/ploidy_estimator/data/CPCT02410017T.purple.cnv'
+   #purple.cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts_prototype/data//CPCT02210082T.purple.cnv'
+   #purple.cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts_prototype/data/CPCT02410017T.purple.cnv'
    #purple.cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/HMF_data/DR010-DR047/data//160704_HMFregCPCT_FR12244557_FR12244595_CPCT02110002/CPCT02110002T.purple.cnv'
    
    cnv <- read.delim(purple.cnv.file, check.names=F, stringsAsFactors=F)
    colnames(cnv) <- sub('#','',colnames(cnv))
    
    #--------- Pre-calculations ---------#
-   cnv <- cnv[,c('chromosome','start','end','copyNumber','segmentStartSupport','segmentEndSupport','method')]
-   cnv$segmentSize <- (cnv$end - cnv$start) + 1
-   cnv$copyNumber[cnv$copyNumber < 0] <- 0 ## Ceiling negative values
-   cnv$copyNumberInt <- round(cnv$copyNumber)
+   if(chrom.arm.split.method=='hmf'){
+      cnv <- cnv[,c('chromosome','start','end','copyNumber','segmentStartSupport','segmentEndSupport','method')]
+   }
+   colnames(cnv)[1:4] <- c('chrom','start','end','copy_number')
+   cnv$chrom <- gsub('chr','',cnv$chrom)
+   
+   cnv$segment_size <- (cnv$end - cnv$start) + 1
+   cnv$copy_number[cnv$copy_number < 0] <- 0 ## Ceiling negative values
+   cnv$copy_number_int <- round(cnv$copy_number)
    
    #--------- Split by chromosome and arm ---------#
    if(verbose){ message('Splitting CN segments by chromosome...') }
-   cnv_split <- split(cnv, cnv$chromosome)
-   cnv_split <- cnv_split[unique(cnv$chromosome)] ## maintain chrom order
+   cnv_split_pre <- split(cnv, cnv$chrom)
+   cnv_split_pre <- cnv_split_pre[unique(cnv$chrom)] ## maintain chrom order
    
    if(verbose){ message('Splitting CN segments by arm...') }
-   cnv_split <- lapply(cnv_split,function(i){
-      #i <- cnv_split[[22]]
+   if(chrom.arm.split.method=='hmf'){
+      cnv_split <- lapply(cnv_split_pre,function(i){
+         #i <- cnv_split_pre[[22]]
+         if(!('LONG_ARM' %in% i$method)){ ## One armed chromosomes are marked by LONG_ARM in method
+            p_arm_end_index <- which(i$segmentEndSupport=='CENTROMERE')
+            l <- list(
+               p=i[1:p_arm_end_index,],
+               q=i[(p_arm_end_index+1):nrow(i),]
+            )
+         } else {
+            ## Consider one armed chroms as only having q arm
+            l <- list(
+               q=i
+            )
+         }
+         names(l) <- paste0(i[1,'chrom'],names(l)) ## Make list names in the form 1p,1q,etc before flattening list
+         return(l)
+      })
+   }
+   
+   if(chrom.arm.split.method=='gap'){
+      centro_pos <- read.delim(centromere.positions.path, stringsAsFactors=F)
+      centro_pos <- structure(centro_pos$pos, names=centro_pos$chrom)
       
-      if(!('LONG_ARM' %in% i$method)){ ## One armed chromosomes are marked by LONG_ARM in method
-         p_arm_end_index <- which(i$segmentEndSupport=='CENTROMERE')
-         
-         l <- list(
-            p=i[1:p_arm_end_index,],
-            q=i[(p_arm_end_index+1):nrow(i),]
-         )
-      } else {
-         ## Consider one armed chroms as only having q arm
-         l <- list(
-            q=i
-         )
-      }
-      
-      names(l) <- paste0(i[1,'chromosome'],names(l)) ## Make list names in the form 1p,1q,etc before flattening list
-      return(l)
-   })
-   names(cnv_split) <- NULL
+      cnv_split <- lapply(cnv_split_pre,function(i){
+         #i <- cnv_split_pre[['11']]
+         chrom <- i[1,'chrom']
+         if(!(chrom %in% one.armed.chroms)){
+            q_arm_start_index <- which.min(i$end < centro_pos[chrom])
+            
+            l <- list(
+               p=i[1:(q_arm_start_index-1),],
+               q=i[q_arm_start_index:nrow(i),]
+            )
+         } else {
+            l <- list(
+               q=i
+            )
+         }
+         names(l) <- paste0(i[1,'chrom'],names(l)) ## Make list names in the form 1p,1q,etc before flattening list
+         return(l)
+      })
+   }
    
    ## Flatten 2-level list into 1-level list
+   names(cnv_split) <- NULL
    cnv_split <- do.call(c, cnv_split)
+   rm(cnv_split_pre)
    
    #--------- Calc arm ploidies ---------#
    if(verbose){ message('Calculating preliminary arm ploidies...') }
    cn_segment_support <- lapply(cnv_split, function(i){
       #i=cnv_split$`17q`
       
-      df <- aggregate(i$segmentSize, by=list(i$copyNumberInt), FUN=sum)
-      colnames(df) <- c('copyNumberInt','cumSegmentSize')
+      df <- aggregate(i$segment_size, by=list(i$copy_number_int), FUN=sum)
+      colnames(df) <- c('copy_number_int','cum_segment_size')
       
-      df$cumSegmentSizeRel <- df$cumSegmentSize / sum(df$cumSegmentSize)
+      df$cum_segment_size_rel <- df$cum_segment_size / sum(df$cum_segment_size)
       
-      #df[which.max(df$cumSegmentSizeRel),]
-      df[order(df$cumSegmentSizeRel, decreasing=T),]
+      #df[which.max(df$cum_segment_size_rel),]
+      df[order(df$cum_segment_size_rel, decreasing=T),]
    })
    
    ## CN with most frequent total segment support is preliminary CN
-   arm_cn_prelim <- unlist(lapply(cn_segment_support, function(i){ i[1,'copyNumberInt'] }))
+   arm_cn_prelim <- unlist(lapply(cn_segment_support, function(i){ i[1,'copy_number_int'] }))
    
    genome_cn <- as.numeric(names(
       sort(table(arm_cn_prelim),decreasing=T)
@@ -101,20 +138,20 @@ calcChromArmPloidies <- function(
       #i=cn_segment_support[['12p']]
       
       ## E.g. >=50% of arm has CN of 2, then this is the CN
-      if( i[1,'cumSegmentSizeRel'] >= min.rel.cum.segment.size ){
-         return(i[1,'copyNumberInt'])
+      if( i[1,'cum_segment_size_rel'] >= min.rel.cum.segment.size ){
+         return(i[1,'copy_number_int'])
       }
       
       #' When multiple CNs have similar segment support as the one with the highest, if one 
       #' of these have the same CN as the genome CN, return the genome CN. Otherwise, simply return 
       #' the one with the highest segment support (as is done above)
-      i$diffs <- i[1,'cumSegmentSizeRel'] - i[,'cumSegmentSizeRel']
-      cn_doubt <- i[i$diffs < max.rel.cum.segment.size.diff,'copyNumberInt']
+      i$diffs <- i[1,'cum_segment_size_rel'] - i[,'cum_segment_size_rel']
+      cn_doubt <- i[i$diffs < max.rel.cum.segment.size.diff,'copy_number_int']
       
       if(any(cn_doubt==genome_cn)){
          return(genome_cn)
       } else {
-         return(i[1,'copyNumberInt'])
+         return(i[1,'copy_number_int'])
       }
    }))
    
@@ -128,7 +165,7 @@ calcChromArmPloidies <- function(
    
    if(chrom.arm.names=='auto'){
       chrom_arm_names <- paste0(rep(c(1:22,'X'),each=2),c('p','q'))
-      chrom_arm_names <- chrom_arm_names[!(chrom_arm_names %in% paste0(c(13,14,15,21,22),'p'))] ## Keep only q arm for one arm chromosomes
+      chrom_arm_names <- chrom_arm_names[!(chrom_arm_names %in% paste0(one.armed.chroms,'p'))] ## Keep only q arm for one arm chromosomes
       chrom_arm_names <- c(chrom_arm_names,'genome')
    } else {
       chrom_arm_names <- c(chrom.arm.names,'genome')
