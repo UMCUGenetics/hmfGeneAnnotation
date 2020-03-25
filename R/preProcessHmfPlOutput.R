@@ -90,7 +90,7 @@ preProcessGeneCnv <- function(
 #' @export
 #'
 filterVcf <- function(
-   vcf.file, out.file, mode, bed.file=BED_FILE,
+   vcf.file, out.file, mode=NULL, bed.file=BED_FILE,
    java.path=JAVA_PATH, snpsift.path=SNPSIFT_PATH
 ){
    #vcf.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/HMF_data/DR-104/data/somatics/191205_HMFregCPCT_FR16670564_FR17496616_CPCT02020989/CPCT02020989T.purple.somatic.vcf.gz'
@@ -102,7 +102,7 @@ filterVcf <- function(
       ## Remove somatic variants (i.e GT with 0/0 or ./. in the germline (1st) column)
       filter_string <- "\"(FILTER='PASS') & !(GEN[0].GT='0/0') & !(GEN[0].GT='./.')\"" 
    } else {
-      stop("Mode must be 'germ' or 'som'")
+      message("Mode unspecified. Filtering intervals only")
    }
    
    string <- paste0(
@@ -114,8 +114,8 @@ filterVcf <- function(
       'FILTER_STRING=',filter_string,'\n',
       
       'gunzip -c $VCF_FILE | \n',
-      '$JAVA -jar $SNPSIFT intervals -v $BED_FILE | \n',
-      '$JAVA -jar $SNPSIFT filter -v "$FILTER_STRING" | \n',
+      if(!is.null(mode)){ '$JAVA -jar $SNPSIFT filter -v "$FILTER_STRING" | \n' } else { '' },
+      '$JAVA -jar $SNPSIFT intervals -verbose $BED_FILE | \n',
       'gzip -c > $OUT_FILE'
    )
    
@@ -125,14 +125,53 @@ filterVcf <- function(
    
    system(string)
 }
-
+# 
 # filterVcf(
 #    vcf.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/HMF_data/DR-104/data/somatics/191205_HMFregCPCT_FR16670564_FR17496616_CPCT02020989/CPCT02020989T.purple.somatic.vcf.gz',
 #    out.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts_prototype/test_output/CPCT02020989T.purple.somatic.ss.vcf.gz',
-#    mode='somatic'
+#    mode='som'
 # )
 
+#---------------------------------------------------------------------------------------------------
+#' Annotate variant type with snpEff
+#'
+#' @param vcf.file Path to vcf file (gzip compressed)
+#' @param out.file Path to output txt file (make sure to add .gz at the end)
+#' @param genome Name of the genome to supply to snpEff
+#' @param java.path Path to java binary (defaults to the installed JRE location)
+#' @param snpsift.path Path to SnpSift jar (defaults to the one included in this package)
+#'
+#' @return Nothing but writes a gzipped txt file
+#' @export
+#'
+annotateVariantType <- function(
+   vcf.file, out.file, genome='GRCh37.75',
+   java.path=JAVA_PATH, snpeff.path=SNPEFF_PATH
+){
+   #vcf.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/HMF_data/DR-104/data/somatics/191205_HMFregCPCT_FR16670564_FR17496616_CPCT02020989/CPCT02020989T.purple.somatic.vcf.gz'
+   #out.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts_prototype/test_output/CPCT02020989T.purple.somatic.ss.vcf.gz'
+   
+   string <- paste0(
+      'JAVA=',java.path,'\n',
+      'SNPEFF=',snpeff.path,'\n',
+      'GENOME=',genome,'\n',
+      'VCF_FILE=',vcf.file,'\n',
+      'OUT_FILE=',out.file,'\n',
 
+      '$JAVA -jar $SNPEFF ann $GENOME $VCF_FILE -lof -no-downstream -no-intergenic -noShiftHgvs -verbose | \n',
+      'gzip -c > ${OUT_FILE}.tmp \n',
+      'mv ${OUT_FILE}.tmp ${OUT_FILE}' ## Hack to do annotation inline of vcf.file is same as out.file
+   )
+   
+   system(string)
+}
+
+# annotateVariantType(
+#    vcf.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts_prototype/test_output/CPCT02020989T.purple.somatic.ss.vcf.gz',
+#    out.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts_prototype/test_output/CPCT02020989T.purple.somatic.ss2.vcf.gz'
+# )
+
+#---------------------------------------------------------------------------------------------------
 #' Extracts revelant fields for downstream functions and outputs as txt file
 #'
 #' @param vcf.file Path to vcf file (gzip compressed)
@@ -167,10 +206,6 @@ extractVcfFields <- function(
       'CHROM POS REF ALT ANN[0].EFFECT ANN[0].GENE ANN[0].GENEID ANN[0].HGVS_C | \n',
       'tail -n+2 | gzip -c >> $OUT_FILE'
    )
-   
-   # fileConn<-file("/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts_prototype/test_output/test.sh")
-   # writeLines(string, fileConn)
-   # close(fileConn)
    
    system(string)
 }
