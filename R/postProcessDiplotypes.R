@@ -40,7 +40,7 @@ calcHitScores <- function(
 #' @return A character vector of hit types
 #' @export
 #'
-detHitType <- function(diplotypes, min.a1.score=1, min.a2.score=1){
+detBiallHitType <- function(diplotypes, min.a1.score=1, min.a2.score=1){
    
    diplotypes_ss <- as.matrix(
       diplotypes[ c('a1.eff','a2.eff','a1.max_score','a2.max_score','diplotype_origin') ]
@@ -73,6 +73,40 @@ detHitType <- function(diplotypes, min.a1.score=1, min.a2.score=1){
       } 
       
       return('none')
+   })
+}
+
+#---------------------------------------------------------------------------------------------------
+#' Determine biallelic hit type v2
+#'
+#' @param diplotypes Diplotypes dataframe
+#'
+#' @return A character vector of hit types
+#' @export
+#'
+detBiallStatus <- function(diplotypes){
+   with(diplotypes,{
+      unlist(Map(function(a1.eff, a2.eff, a1.max_score, a2.max_score){
+         if(a1.eff %in% c('deep_deletion','trunc')){ 
+            return('8;cn_loss') 
+         }
+         
+         if(a1.eff=='loh'){
+            if(a2.max_score==5){ return('7;loh+pathogenic') }
+            if(a2.max_score==4){ return('6;loh+likely_pathogenic') }
+            if(a2.max_score==3){ return('5;loh+vus') }
+            return('3;loh_only')
+         }
+         
+         if(a1.eff!='loh' & a1.max_score==5 & a2.max_score==5){ 
+            return('4;2x_pathogenic') 
+         } ## germ+som and som+som cases
+         
+         if(a1.max_score==5 | a2.max_score==5){ return('2;pathogenic_1x') }
+         if(a1.max_score==4 | a2.max_score==4){ return('1;likely_pathogenic_1x') }
+         
+         return('0;none')
+      }, a1.eff, a2.eff, a1.max_score, a2.max_score, USE.NAMES=F))
    })
 }
 
