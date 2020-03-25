@@ -7,7 +7,6 @@
 #' @param arm.ploidies arm ploidies dataframe
 #' @param min.cn.arm.ploidy.diff Minimum difference between min_copy_number and arm_ploidy before a
 #' gain is considered to have happened
-#' @param amp.bins Breaks for the bin amplification ratios
 #' @param deep.del.max.max.copy.number The max max_copy_number for a gene to be considered to 
 #' be completely lost (deep deletion)
 #' @param trunc.max.min.copy.number The max min_copy_number to for a gene to be considered to have
@@ -24,7 +23,6 @@ mkMutProfileGeneCnv <- function(
    gene.cnv, arm.ploidies,
    
    min.cn.arm.ploidy.diff=0.8,
-   amp.bins=c(0, 1.5, 2.5, 3.5, 7.5, Inf),
    
    ## Cutoffs
    deep.del.max.max.copy.number = 0.3, 
@@ -59,7 +57,7 @@ mkMutProfileGeneCnv <- function(
    gains$amp_type <- 'none'
    gains <- within(gains,{
       amp_type[ arm_ploidy > genome_ploidy ] <- 'arm'
-      amp_type[ min_copy_number > arm_ploidy & cn_arm_ploidy_diff >= 0.8 ] <- 'local'
+      amp_type[ min_copy_number > arm_ploidy & cn_arm_ploidy_diff >= min.cn.arm.ploidy.diff ] <- 'local'
       #amp_type[ amp_type=='local' & min_copy_number < genome_ploidy ] <- 'local.lt.genome'
    })
    
@@ -78,58 +76,16 @@ mkMutProfileGeneCnv <- function(
       return(1)
    }, gains$amp_ratio_arm, gains$amp_ratio_local, gains$amp_type, USE.NAMES=F))
    
-   if(verbose){ message('Assigning amplification bin...') }
-   gain_level_names <- paste0(
-      '_[',amp.bins[-length(amp.bins)],
-      ',',amp.bins[-1],')'
-   )
-   gain_level_names[ .bincode(2, amp.bins, include.lowest=T, right=F) ]
-   
-   gains$amp_context <- gain_level_names[ .bincode(gains$amp_ratio, amp.bins, include.lowest=T) ]
-   gains$amp_context[gains$amp_type=='none'] <- ''
-   gains$amp_context <- paste0(gains$amp_type,gains$amp_context)
-   
-   # ###
-   # gains <- data.frame(
-   #    genome_ploidy = arm.ploidies[arm.ploidies$chrom=='genome','ploidy'],
-   #    arm_ploidy = arm.ploidies$ploidy[ match(gene.cnv$chrom_arm, arm.ploidies$chrom) ],
-   #    min_copy_number_int = round(gene.cnv$min_copy_number),
-   # 
-   #    stringsAsFactors = F
-   # )
-   # 
-   # if(verbose){ message('Determining amplification type...') }
-   # gains$amp_type <- 'none'
-   # gains <- within(gains,{
-   #    amp_type[ arm_ploidy > genome_ploidy ] <- 'arm'
-   #    amp_type[ min_copy_number_int > arm_ploidy ] <- 'local'
-   #    amp_type[ amp_type=='local' & min_copy_number_int < genome_ploidy ] <- 'local.lt.genome'
-   # })
-   # 
    # if(verbose){ message('Assigning amplification bin...') }
-   # amp_ratios <- with(gains,{
-   #    data.frame(
-   #       arm = arm_ploidy / genome_ploidy,
-   #       local = min_copy_number_int / arm_ploidy,
-   #       stringsAsFactors = F
-   #    )
-   # })
-   # 
-   # gains$amp_ratio <- unlist(Map(function(arm, local, amp_type){
-   #    if(amp_type=='arm'){ return(arm) }
-   #    if(grepl('^local',amp_type)){ return(local) }
-   #    return(1)
-   # }, amp_ratios$arm, amp_ratios$local, gains$amp_type, USE.NAMES=F))
-   # 
    # gain_level_names <- paste0(
-   #    '_(',amp.bins[-length(amp.bins)],
-   #    ',',amp.bins[-1],']'
+   #    '_[',amp.bins[-length(amp.bins)],
+   #    ',',amp.bins[-1],')'
    # )
+   # gain_level_names[ .bincode(2, amp.bins, include.lowest=T, right=F) ]
    # 
    # gains$amp_context <- gain_level_names[ .bincode(gains$amp_ratio, amp.bins, include.lowest=T) ]
    # gains$amp_context[gains$amp_type=='none'] <- ''
    # gains$amp_context <- paste0(gains$amp_type,gains$amp_context)
-   # ####
    
    #--------- Losses ---------#
    if(verbose){ message('> Losses...') }
@@ -164,7 +120,7 @@ mkMutProfileGeneCnv <- function(
    
    out <- cbind(
       gene.cnv, 
-      gains,
+      subset(gains,select=-min_copy_number),
       cn_loss_type=losses$loss_type,loss_scores
    )
    
