@@ -9,6 +9,7 @@
       c('SNPSIFT_PATH','../dep/snpEff/SnpSift.jar'),
       c('SNPEFF_PATH','../dep/snpEff/snpEff.jar'), ## snpEff has requires databases that are downloaded to ./ the first time
       c('BED_FILE','misc/cosmic_cancer_gene_census_20200225.bed'),
+      c('EXONS_BED_FILE','misc/cosmic_cancer_gene_census_exons_20200225.bed.gz'),
       
       c('CENTROMERE_POSITIONS','db/centromere_positions_hg19.txt'),
       c('GENES_ENST2ENSG','db/human_genes_enst2ensg.txt.gz'),
