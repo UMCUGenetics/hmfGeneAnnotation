@@ -148,9 +148,10 @@ retrieveHgncGeneList <- function(
 ####################################################################################################
 mkGenesBed <- function(
    cosmic.genes.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/inst/db/cosmic_cancer_gene_census_20200225.tsv.gz',
-   out.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/inst/misc/cosmic_cancer_gene_census_20200225.bed'
+   genes.bed.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/inst/misc/cosmic_cancer_gene_census_20200225.bed',
+   exons.bed.path='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/inst/misc/cosmic_cancer_gene_census_exons_20200225.bed.gz'
 ){
-
+   
    cosmic_genes <- read.delim(cosmic.genes.path, stringsAsFactors=F)
    colnames(cosmic_genes) <- gsub('[.]','_',colnames(cosmic_genes))
    colnames(cosmic_genes) <- gsub('_$','',colnames(cosmic_genes))
@@ -166,13 +167,15 @@ mkGenesBed <- function(
    cosmic_genes$hgnc_symbol <- ensgToHgncSymbol(ensg_ids)
    cosmic_genes_ss <- cosmic_genes[!is.na(cosmic_genes$hgnc_symbol),]
    
-   mart <- useMart(biomart='ensembl', dataset='hsapiens_gene_ensembl', host='grch37.ensembl.org')
+   mart <- biomaRt::useMart(biomart='ensembl', dataset='hsapiens_gene_ensembl', host='grch37.ensembl.org')
+   #biomaRt::listAttributes(mart)
    
-   genes_bed <- getBM(
+   #--------- Genes ---------#
+   genes_bed <- biomaRt::getBM(
       mart=mart, verbose=F,
       attributes=c(
          'chromosome_name', 'start_position', 'end_position',
-         'hgnc_id','hgnc_symbol','ensembl_gene_id'
+         'hgnc_id','hgnc_symbol','ensembl_gene_id','ensembl_exon_id'
       ),
       filters='ensembl_gene_id',
       values=ensg_ids
@@ -199,11 +202,32 @@ mkGenesBed <- function(
    genes_bed$molecular_genetics[nchar(genes_bed$molecular_genetics)==0] <- 'unknown'
    
    genes_bed <- genes_bed[order(genes_bed$hgnc_symbol),]
-   
    colnames(genes_bed)[1:3] <- c('#chrom','start','end')
    
-   write.table(genes_bed, out.path, sep='\t', row.names=F, quote=F)
+   write.table(
+      unique(subset(genes_bed, select=-ensembl_exon_id)), 
+      genes.bed.path, sep='\t', row.names=F, quote=F
+   )
+   
+   #--------- Exons ---------#
+   exons <- biomaRt::getBM(
+      mart=mart, verbose=F,
+      attributes=c(
+         'ensembl_exon_id','exon_chrom_start','exon_chrom_end'
+      ),
+      filters='ensembl_exon_id',
+      values=genes_bed$ensembl_exon_id
+   )
+   colnames(exons) <- c('ensembl_exon_id','exon_start','exon_end')
+   
+   exons_bed <- merge(genes_bed, exons, by='ensembl_exon_id', all=T)
+   exons_bed <- exons_bed[,c('#chrom','exon_start','exon_end','ensembl_exon_id','hgnc_symbol','ensembl_gene_id','start','end')]
+   exons_bed <- exons_bed[order(exons_bed$hgnc_symbol),]
+   
+   write.table(exons_bed, gzfile(exons.bed.path), sep='\t', row.names=F, quote=F)
 }
+
+
 
 ####################################################################################################
 getCentromerePositions <- function(
@@ -221,6 +245,9 @@ getCentromerePositions <- function(
    out$pos <- (out$start + out$end)/2
    out <- out[naturalsort::naturalorder(out$chrom),c('chrom','pos')]
    out$chrom <- gsub('chr','',out$chrom)
+   
+   one_armed_chroms <- c(13,14,15,21,22)
+   out$one_armed <- out$chrom %in% one_armed_chroms
    
    write.table(out, out.path, sep='\t', row.names=F, quote=F)
 }
