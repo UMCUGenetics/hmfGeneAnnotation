@@ -155,7 +155,9 @@ mkMutProfileSnvIndel <- function(
 ){
    
    #--------- Sanity checks ---------#
-   if(nrow(df.snv.indel)==0){ return(NA) }
+   if(nrow(df.snv.indel)==0){ 
+      return(data.frame()) 
+   }
    #df.snv.indel=input_tables$som_txt
    #df.snv.indel=input_tables$germ_txt
    
