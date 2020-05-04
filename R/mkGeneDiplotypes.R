@@ -71,16 +71,16 @@ mkGeneDiplotypesCnvMut <- function(mut.profile.cnv, mut.profile.mut, mut.origin,
    union_genes <- unique(c(genes_cnv, genes_mut))
    n_genes <- length(union_genes)
    
-   if(verbose & n_genes!=0){
-      pb <- txtProgressBar(min=0, max=n_genes, initial=0, style=3, width=100)
-      counter <- 0
-   }
+   # if(verbose & n_genes!=0){
+   #    pb <- txtProgressBar(min=0, max=n_genes, initial=0, style=3, width=100)
+   #    counter <- 0
+   # }
    
    l <- lapply(union_genes, function(i){
-      if(verbose & n_genes!=0){
-         counter <<- counter+1
-         setTxtProgressBar(pb,counter)
-      }
+      # if(verbose & n_genes!=0){
+      #    counter <<- counter+1
+      #    setTxtProgressBar(pb,counter)
+      # }
       #print(i)
       #i="ENSG00000225178"
       #i='ENSG00000012048' ## BRCA1
@@ -227,6 +227,10 @@ mkGeneDiplotypesMutMut <- function(
    #mut.profile.mut1=mut_profile$som
    #mut.profile.mut1=mut_profile$germ
    #mut.profile.mut2=mut_profile$som
+   
+   if(nrow(mut.profile.mut1)==0 | nrow(mut.profile.mut2)==0){
+      return(NULL)
+   }
    
    #========= Col names =========#
    common_cols <- getBialleleCols('common',as='names')
