@@ -7,9 +7,10 @@
 #' @param bed.file Path to the bed file containing the genes of interest. This bed file should also 
 #' contain the column ensembl_gene_id
 #' @param java.path Path the the java binary
-#' @param snpsift.path Path to the SnpSift jar
+#' @param snpsift.path Path to the SnpSift.jar
+#' @param snpeff.path Path to snpEff.jar
 #' @param do.snpeff.ann Annotate SNV/indels variant type with snpeff?
-#' @param chrom.arm.split.method Can be 'hmf' or 'gap'. Refer to documentation for 
+#' @param chrom.arm.split.method Can be 'hmf' or 'universal'. Refer to documentation for 
 #' calcChromArmPloidies().
 #' @param verbose Show progress messages?
 #'
@@ -17,35 +18,74 @@
 #' @export
 #'
 detGeneStatuses <- function(
-   out.dir, input.file.paths=c(germ_vcf='', som_vcf='', gene_cnv='', cnv=''), sample.name,
-   bed.file=BED_FILE, java.path=JAVA_PATH, snpsift.path=SNPSIFT_PATH,
+   ## Input arguments
+   out.dir, input.file.paths=c(germ_vcf=NA, som_vcf=NA, gene_cnv=NA, cnv=NA), sample.name,
+   
+   ## Package constants
+   bed.file=BED_FILE, exons.bed.file=EXONS_BED_FILE,
+   java.path=JAVA_PATH, snpsift.path=SNPSIFT_PATH, snpeff.path=SNPEFF_PATH,
+   
+   ## Defaults for HMF pipeline output
    chrom.arm.split.method='hmf',
-   do.snpeff.ann=F,
+   do.filter.vcf=T, do.snpeff.ann=F, do.det.reading.frame=T,
+   ignore.chroms=NULL,
+   
    verbose=T
 ){
    
-#========= Debugging =========#
-   # if(dir.exists('/Users/lnguyen/')){
+####========= Inputs for debugging =========#
+
+   # if(1==2){
    # 
+   #    devtools::load_all('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/')
+   # 
+   #    ## HMF
    #    vcf_paths <- read.delim('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CUPs_classifier/metadata/vcf_paths.txt', stringsAsFactors=F)
    #    sample.name <- 'CPCT02010422T' ## BRCA2 LOH+som
    #    #sample.name <- 'CPCT02010543T' ## APC som stop gain (5) + som FS (5)
    # 
    #    out.parent.dir <- '/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CUPs_classifier_data/gene_ann/'
    #    out.dir <- paste0(out.parent.dir,'/',sample.name,'/')
-   #    dir.create(out.dir, recursive=T)
+   #    dir.create(out.dir, recursive=T, showWarnings=F)
    # 
    #    input.file.paths <- unlist(vcf_paths[vcf_paths$sample==sample.name,-1])
    #    input.file.paths <- paste0('/Users/lnguyen/',input.file.paths)
    #    names(input.file.paths) <- c('germ_vcf','som_vcf','sv_vcf','gene_cnv','cnv')
    # 
+   #    #------
+   #    ## PCAWG
+   #    vcf_paths <- read.delim('/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/datasets/PCAWG_2020/scripts/annotate_genes/manifest_samples_with_all_data.txt', stringsAsFactors=F)
+   #    sample.name <- '42465bbd-289b-4e96-98fe-76809c5e1520' ## BRCA1 LOH+som
+   #    sample.name <- '005e85a3-3571-462d-8dc9-2babfc7ace21' ## Y chrom fail
+   #    sample.name <- '07a7c634-bd9a-4fc2-b9fe-87b060ec3d1f' ## empty mut txt
+   #    sample.name <- '1bea3a72-3b73-4072-a6bb-96a90119d3ac' ## calcChromArmPloidy fail
+   #    sample.name <- '0009b464-b376-4fbc-8a56-da538269a02f' ## test
+   # 
+   #    out.parent.dir <- '/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/datasets/PCAWG_2020/gene_ann/'
+   #    out.dir <- paste0(out.parent.dir,'/',sample.name,'/')
+   #    dir.create(out.dir, recursive=T, showWarnings=F)
+   # 
+   #    input.file.paths <- unlist(vcf_paths[vcf_paths$sample==sample.name,-1])
+   #    input.file.paths <- paste0('/Users/lnguyen/',input.file.paths)
+   #    names(input.file.paths) <- c('germ_vcf','som_vcf','cnv')
+   # 
+   #    chrom.arm.split.method='universal'
+   #    do.filter.vcf=F
+   #    do.snpeff.ann=T
+   #    do.det.reading.frame=F
+   #    ignore.chroms='Y'
+   # 
+   #    #------
+   #    ## Common args
    #    bed.file=BED_FILE
+   #    exons.bed.file=EXONS_BED_FILE
    #    java.path=JAVA_PATH
-   #    snpsift.path=SNPSIFT_PATH
+   #    snpsift.path='/Users/lnguyen/Documents/R_cache/snpEff/SnpSift.jar'
+   #    snpeff.path='/Users/lnguyen/Documents/R_cache/snpEff/snpEff.jar'
    #    verbose=T
    # }
    
-#========= Sanity checks =========#
+####========= Sanity checks =========#
    if(!dir.exists(out.dir)){
       stop('out.dir does not exist: ',out.dir)
    }
@@ -58,36 +98,19 @@ detGeneStatuses <- function(
       input.file.paths <- structure(input.file.paths, names=names(input.file.paths))
    }
    
-   inputs_not_exist <- !file.exists(input.file.paths)
-   if(any(inputs_not_exist)){
-      stop(
-         'The following files do not exist:\n',
-         paste(input.file.paths[!inputs_not_exist],collapse='\n')
-      )
-   }
-   rm(inputs_not_exist)
+   # if(anyNA(input.file.paths[c('germ_vcf','som_vcf','cnv')])){
+   #    stop('germ_vcf, som_vcf and cnv must be specified in input.file.paths')
+   # }
    
-#========= Pre-process HMF pipeline output =========#
+   # if(any(input.file.paths[!is.na(input.file.paths)])){
+   #    stop('One or more of the input files do not exist')
+   # }
+
+####========= Pre-process HMF pipeline output =========#
    preproc_dir <- paste0(out.dir,'/preproc/')
-   suppressWarnings({ dir.create(preproc_dir, recursive=T) })
+   dir.create(preproc_dir, recursive=T, showWarnings=F)
    
    preproc_files <- c()
-   
-   #--------- Gene cnv ---------#
-   if(verbose){ message('\n## Subsetting gene cnv...') }
-   
-   preproc_files['gene_cnv'] <- paste0(preproc_dir,'/',sample.name,'.gene.cnv.txt')
-   
-   if( !file.exists(preproc_files['gene_cnv']) ){
-      preProcessGeneCnv(
-         gene.cnv.file = input.file.paths['gene_cnv'],
-         out.file = preproc_files['gene_cnv'],
-         bed.file = bed.file,
-         verbose = verbose
-      )
-   } else {
-      if(verbose){ message('Skipping; output file exists: ',preproc_files['gene_cnv']) }
-   }
    
    #--------- Cnv ---------#
    if(verbose){ message('\n## Calculating chrom arm ploidies...') }
@@ -97,85 +120,146 @@ detGeneStatuses <- function(
       calcChromArmPloidies(
          input.file.paths['cnv'],
          out.file = preproc_files['arm_ploidies'],
-         chrom.arm.split.method=chrom.arm.split.method,
+         chrom.arm.split.method = chrom.arm.split.method,
+         ignore.chroms = ignore.chroms,
          verbose = verbose
       )
    } else {
       if(verbose){ message('Skipping; output file exists: ',preproc_files['arm_ploidies']) }
    }
    
+   #--------- Gene cnv ---------#
+   preproc_files['gene_cnv'] <- paste0(preproc_dir,'/',sample.name,'.gene.cnv.txt')
+   
+   if( !file.exists(preproc_files['gene_cnv']) ){
+
+      if( is.na(input.file.paths['gene_cnv']) ){
+         if(verbose){ message('\n## Gene cnv file not specified. Generating from cnv file...') }
+         cnvToGeneCnv(
+            input.file.paths['cnv'],
+            out.file = preproc_files['gene_cnv'],
+            exons.bed.file = exons.bed.file,
+            verbose = verbose
+         )
+      } else {
+         if(verbose){ message('\n## Subsetting gene cnv...') }
+         preProcessGeneCnv(
+            gene.cnv.file = input.file.paths['gene_cnv'],
+            out.file = preproc_files['gene_cnv'],
+            bed.file = bed.file,
+            verbose = verbose
+         )
+      }
+   } else {
+      if(verbose){ message('Skipping; output file exists: ',preproc_files['gene_cnv']) }
+   }
+   
    #--------- Somatic/germline vcfs ---------#
    bed_file <- read.delim(bed.file, stringsAsFactors=F, check.names=F)
    colnames(bed_file)[1] <- 'chrom'
    
+   #input.file.paths['som_vcf'] <- '/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/datasets/PCAWG_2020/scripts/merge_snv_indel_vcfs/test.vcf.gz'
    #counter <- 0
    for(mut_type in c('som','germ')){
       # counter <- counter + 1
       # if(counter==2){ break }
+      # mut_type='som'
       
-      VARNAME_vcf <- paste0(mut_type,'_vcf')
-      VARNAME_txt <- paste0(mut_type,'_txt')
+      MUT_VCF <- paste0(mut_type,'_vcf')
+      MUT_TXT <- paste0(mut_type,'_txt')
       
-      preproc_files[VARNAME_vcf] <- paste0(preproc_dir,'/',sample.name,'.',mut_type,'.vcf.gz')
-      preproc_files[VARNAME_txt] <- paste0(preproc_dir,'/',sample.name,'.',mut_type,'.txt.gz')
+      preproc_files[MUT_VCF] <- paste0(preproc_dir,'/',sample.name,'.',mut_type,'.vcf.gz')
+      preproc_files[MUT_TXT] <- paste0(preproc_dir,'/',sample.name,'.',mut_type,'.txt.gz')
       
       if(verbose){ message('\n## Processing ',toupper(mut_type),' vcf...') }
       
-      if( !file.exists(preproc_files[VARNAME_vcf]) ){
-         if(verbose){ message('> Subsetting on genes in bed file...') }
-         filterVcf(
-            vcf.file = input.file.paths[VARNAME_vcf],
-            out.file = preproc_files[VARNAME_vcf],
-            mode = mut_type,
-            bed.file = bed.file,
-            java.path = java.path,
-            snpsift.path = snpsift.path
-         )
+      if(  !file.exists(preproc_files[MUT_VCF]) ){
+         
+         if(do.filter.vcf){
+            if(verbose){ message('> Filtering vcf on variants in genes in bed file and PASS variants...') }
+            filterVcf(
+               vcf.file = input.file.paths[MUT_VCF],
+               out.file = preproc_files[MUT_VCF],
+               mode = mut_type,
+               bed.file = bed.file,
+               java.path = java.path,
+               snpsift.path = snpsift.path
+            )
+         } else {
+            message('> Skipping filtering vcf; copying vcf to out dir...')
+            system(paste(
+               'cp',
+               input.file.paths[MUT_VCF],
+               preproc_files[MUT_VCF]
+            ))
+         }
+         
       } else {
-         if(verbose){ message('> Skipping subsetting vcf; output file exists: ',preproc_files[VARNAME_vcf]) }
+         if(verbose){ message('> Skipping filtering vcf; output file exists: ',preproc_files[MUT_VCF]) }
       }
       
       ## Snpeff annotation
       if(do.snpeff.ann){
-         annotateVariantType(
-            vcf.file=preproc_files[VARNAME_vcf], 
-            out.file=preproc_files[VARNAME_vcf],
-            genome='GRCh37.75',
-            java.path=JAVA_PATH, 
-            snpeff.path=SNPEFF_PATH
-         )
+         
+         ann_done <- paste0(preproc_dir,'/ann.',mut_type,'.done')
+         
+         if(!file.exists(ann_done)){
+            if(verbose){ message('> Annotating variants...') }
+            annotateVariantType(
+               vcf.file = preproc_files[MUT_VCF], 
+               out.file = preproc_files[MUT_VCF],
+               genome = 'GRCh37.75',
+               java.path = java.path, 
+               snpeff.path = snpeff.path
+            )
+            
+            file.create(ann_done)
+         } else {
+            if(verbose){ message("> Skipping annotating variants; done file exists") }
+         }
       }
       
       ## Filtering
-      if( !file.exists(preproc_files[VARNAME_txt]) ){
+      if( !file.exists(preproc_files[MUT_TXT]) ){
          if(verbose){ message('> Extracting revelant fields in vcf to txt...') }
          extractVcfFields(
-            vcf.file = preproc_files[VARNAME_vcf],
-            out.file = preproc_files[VARNAME_txt],
+            vcf.file = preproc_files[MUT_VCF],
+            out.file = preproc_files[MUT_TXT],
             java.path = java.path,
             snpsift.path = snpsift.path
          )
          
-         txt <- read.delim(preproc_files[VARNAME_txt], stringsAsFactors=F)
+         txt <- read.delim(preproc_files[MUT_TXT], stringsAsFactors=F)
+         
+         if(!is.null(ignore.chroms)){
+            if(verbose){ message('> Removing chromosomes: ',paste(ignore.chroms, collapse=',')) }
+            txt <- txt[!(txt$chrom %in% ignore.chroms),]
+         }
          
          if(verbose){ message('> Performing extra subsetting for ENSG ids present in bed file...') }
          txt <- txt[txt$ensembl_gene_id %in% bed_file$ensembl_gene_id,]
          
          if(verbose){ message('> Adding HGNC gene ids...') }
-         txt$hgnc_symbol <- ensgToHgncSymbol(txt$ensembl_gene_id)
+         #txt$hgnc_symbol <- ensgToHgncSymbol(txt$ensembl_gene_id)
+         txt$hgnc_symbol <- bed_file[match(txt$ensembl_gene_id, bed_file$ensembl_gene_id),'hgnc_symbol']
          
-         if(verbose){ message('> Adding ClinVar annotations...') }
-         txt$clinvar_sig <- getClinSig(txt, CLINVAR_PATH)
+         if(nrow(txt)!=0){
+            if(verbose){ message('> Adding ClinVar annotations...') }
+            txt$clinvar_sig <- getClinSig(txt, CLINVAR_PATH) ## seqminer::tabix.read returns error if dataframe is empty
+         } else {
+            if(verbose){ message('> No variants remain after filtering. Skipping adding ClinVar annotations...') }
+            txt <- cbind(txt, data.frame(clinsig='')[0,,drop=F])
+         }
          
-         write.tsv(txt, preproc_files[VARNAME_txt])
+         write.tsv(txt, preproc_files[MUT_TXT])
          rm(txt)
          
       } else {
-         if(verbose){ message('> Skipping making txt; output file exists: ',preproc_files[VARNAME_txt]) }
+         if(verbose){ message('> Skipping making txt; output file exists: ',preproc_files[MUT_TXT]) }
       }
    }
    
-#========= Make preliminary output =========#
+####========= Make preliminary output =========#
    #--------- Read files ---------#
    if(verbose){ message('\n## Loading input files...') }
    input_table_names <- c('arm_ploidies','gene_cnv','som_txt','germ_txt')
@@ -195,7 +279,8 @@ detGeneStatuses <- function(
    
    #--------- Make mut profiles ---------#
    mut_profile_dir <- paste0(out.dir,'/mut_profiles/')
-   suppressWarnings({ dir.create(mut_profile_dir, recursive=T) })
+   dir.create(mut_profile_dir, recursive=T, showWarnings=F)
+   
    mut_profile_paths <- list(
       gene_cnv=paste0(mut_profile_dir,'/mut_profile_gene_cnv.txt.gz'),
       som=paste0(mut_profile_dir,'/mut_profile_som.txt.gz'),
@@ -204,9 +289,7 @@ detGeneStatuses <- function(
    
    if( all(file.exists(unlist(mut_profile_paths))) ){
       mut_profile <- lapply(mut_profile_paths, read.delim, stringsAsFactors=F)
-   } 
-   
-   else {
+   } else {
       mut_profile <- list()
       
       if(verbose){ message('\n## Annotating gene CNV table...') }
@@ -244,7 +327,16 @@ detGeneStatuses <- function(
       }
    }
    
-   #========= Make gene diplotypes =========#
+   ## Force factors to characters
+   mut_profile <- lapply(mut_profile, function(i){
+      #i=mut_profile[[1]]
+      as.data.frame(lapply(i, function(j){
+         if(is.factor(j)){ as.character(j) }
+         else(j)
+      }), stringsAsFactors=F)
+   })
+   
+####========= Make gene diplotypes =========#
    if(verbose){ message('\n## Making gene diplotypes tables...') }
    l_gene_diplotypes <- list()
    
@@ -285,7 +377,7 @@ detGeneStatuses <- function(
    # View(subset(l_gene_diplotypes$cnv_germ, hgnc_symbol %in% c('BRCA1','BRCA2')))
    # lapply(l_gene_diplotypes, function(i){ which(apply(i,1,anyNA)) })
    
-   #========= Calculate hit scores and determine gene max effect =========#
+####========= Calculate hit scores and determine gene max effect =========#
    if(verbose){ message('\n## Merging diplotype origins into one table...') }
    gene_diplotypes <- do.call(rbind, l_gene_diplotypes)
    rownames(gene_diplotypes) <- NULL
@@ -317,6 +409,14 @@ detGeneStatuses <- function(
       return(df)
    })()
    
+   if(do.det.reading.frame){
+      if(verbose){ message('\n## Determining resulting reading frames due to multi-frameshifts...') }
+      gene_diplotypes_max <- cbind(
+         gene_diplotypes_max,
+         detReadingFrame(gene_diplotypes_max, mut_profile$germ, mut_profile$som)
+      )
+   }
+
    # subset(gene_diplotypes_max, diplotype_origin %in% c('germ_som','som_som'))
    # subset(gene_diplotypes, is.na(hit_score_boosted))
    # subset(gene_diplotypes_max, hgnc_symbol %in% c('BRCA1','BRCA2'))
