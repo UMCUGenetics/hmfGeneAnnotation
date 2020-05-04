@@ -5,7 +5,7 @@
 #' cumulative segment size). The chrom arm CN is (roughly) defined as the CN category with the
 #' highest cumulative segment size
 #'
-#' @param purple.cnv.file Path to purple cnv file
+#' @param cnv.file Path to purple cnv file
 #' @param out.file Path to output file. If NULL, returns a named vector
 #' @param min.rel.cum.segment.size If a chrom arm has a CN category that covers >0.5 (i.e 50%; default) 
 #' of a chrom arm, this CN is the copy number of the arm
@@ -20,7 +20,7 @@
 #' are considered to only have the long (i.e. q) arm.
 #' @param chrom.arm.split.method Which method to determine the chromosome arm coords? If 'hmf', uses
 #' 'method' column from purple cnv file to determine centromere positions (i.e. p/q arm split point).
-#' If 'gap', uses the a (processed) gap.txt.gz table from the UCSC genome browser to determine
+#' If 'universal', uses the a (processed) gap.txt.gz table from the UCSC genome browser to determine
 #' centromere positions. These 2 methods should in theory be identical, unless the HMF pipeline code
 #' changes.
 #' @param verbose Show progress messages?
@@ -31,25 +31,32 @@
 #'
 #' @examples
 calcChromArmPloidies <- function(
-   purple.cnv.file, out.file=NULL, 
+   cnv.file, out.file=NULL, 
    min.rel.cum.segment.size=0.5, max.rel.cum.segment.size.diff=0.1,
-   chrom.arm.split.method='hmf', 
+   chrom.arm.split.method='universal', 
    centromere.positions.path=CENTROMERE_POSITIONS, one.armed.chroms=ONE_ARMED_CHROMS,
-   chrom.arm.names='auto', 
+   chrom.arm.names='auto', ignore.chroms=NULL,
    verbose=T
 ){
    
-   #purple.cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts_prototype/data//CPCT02210082T.purple.cnv'
-   #purple.cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts_prototype/data/CPCT02410017T.purple.cnv'
-   #purple.cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/HMF_data/DR010-DR047/data//160704_HMFregCPCT_FR12244557_FR12244595_CPCT02110002/CPCT02110002T.purple.cnv'
+   #cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts_prototype/data//CPCT02210082T.purple.cnv'
+   #cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/CHORD/scripts_main/hmfGeneAnnotation/scripts_prototype/data/CPCT02410017T.purple.cnv'
+   #cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/HMF_data/DR010-DR047/data//160704_HMFregCPCT_FR12244557_FR12244595_CPCT02110002/CPCT02110002T.purple.cnv'
+   #cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/datasets/PCAWG_2020/vcf/cnv/cna_annotated/07f16397-71bb-4594-ad4d-caa7d2baeabd.consensus.20170119.somatic.cna.annotated.txt'
+   #cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/datasets/PCAWG_2020/vcf/cnv/cna_annotated/005e85a3-3571-462d-8dc9-2babfc7ace21.consensus.20170119.somatic.cna.annotated.txt'
+   #cnv.file='/Users/lnguyen/hpc/cog_bioinf/cuppen/project_data/Luan_projects/datasets/PCAWG_2020/vcf/cnv/cna_annotated/1bea3a72-3b73-4072-a6bb-96a90119d3ac.consensus.20170119.somatic.cna.annotated.txt'
    
-   cnv <- read.delim(purple.cnv.file, check.names=F, stringsAsFactors=F)
+   cnv <- read.delim(cnv.file, check.names=F, stringsAsFactors=F)
    colnames(cnv) <- sub('#','',colnames(cnv))
    
-   #--------- Pre-calculations ---------#
-   if(chrom.arm.split.method=='hmf'){
-      cnv <- cnv[,c('chromosome','start','end','copyNumber','segmentStartSupport','segmentEndSupport','method')]
+   if(!is.null(ignore.chroms)){
+      cnv <- cnv[!(cnv$chrom %in% ignore.chroms),]
    }
+   
+   #--------- Pre-calculations ---------#
+   # if(chrom.arm.split.method=='hmf'){
+   #    cnv <- cnv[,c('chromosome','start','end','copyNumber','segmentStartSupport','segmentEndSupport','method')]
+   # }
    colnames(cnv)[1:4] <- c('chrom','start','end','copy_number')
    cnv$chrom <- gsub('chr','',cnv$chrom)
    
@@ -83,7 +90,7 @@ calcChromArmPloidies <- function(
       })
    }
    
-   if(chrom.arm.split.method=='gap'){
+   if(chrom.arm.split.method=='universal'){
       centro_pos <- read.delim(centromere.positions.path, stringsAsFactors=F)
       centro_pos <- structure(centro_pos$pos, names=centro_pos$chrom)
       
@@ -116,7 +123,6 @@ calcChromArmPloidies <- function(
    if(verbose){ message('Calculating preliminary arm ploidies...') }
    cn_segment_support <- lapply(cnv_split, function(i){
       #i=cnv_split$`17q`
-      
       df <- aggregate(i$segment_size, by=list(i$copy_number_int), FUN=sum)
       colnames(df) <- c('copy_number_int','cum_segment_size')
       
